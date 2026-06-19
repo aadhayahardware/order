@@ -494,6 +494,7 @@ function openSheet(code){
    ${isEnq(cur)?`<div class="lbl">PRICING</div><div style="font-size:12.5px;color:#d9c483;background:rgba(200,168,74,.08);border:1px solid var(--line);border-radius:11px;padding:13px 14px;line-height:1.5">💬 Dealer price shared instantly on WhatsApp.<br><span style="color:var(--mut);font-size:10.5px">${cur.priceNote}.</span></div>`:`<div class="lbl">PRICE LIST${hasDisc(cur)?' <span style="color:#25D366">· 50% OFF</span>':''}</div>
    <table>${cur.priceRows.map(r=>`<tr><td>${r.label}</td><td>${priceTag(cur,r.price)}</td></tr>`).join('')}</table>
    <div style="font-size:10px;color:var(--mut);margin-top:6px">* ${cur.priceNote}.</div>`}
+   <div style="display:flex;gap:7px;align-items:flex-start;margin-top:14px;font-size:11px;color:#d9c483;background:rgba(200,168,74,.07);border:1px solid var(--line);border-radius:9px;padding:9px 11px;line-height:1.45">ⓘ <span>Some finishes &amp; sizes are subject to availability — final confirmation on WhatsApp.</span></div>
    <div class="lbl">QUANTITY</div>
    <div class="qtyrow"><div class="stepper">
      <button onclick="chQty(-1)">−</button><span id="qv">1</span><button onclick="chQty(1)">+</button></div>
@@ -539,7 +540,7 @@ function openCart(){
      <div class="row"><span>Items</span><span>${cart.reduce((a,b)=>a+b.qty,0)} pcs</span></div>
      ${saved>0?`<div class="row"><span>MRP Total</span><span><s style="color:var(--mut)">${money(mrp)}</s></span></div><div class="row" style="color:#25D366"><span>You Save (50%)</span><span>− ${money(saved)}</span></div>`:''}
      <div class="row tot"><span>Estimated Total</span><span>${money(tot)}</span></div></div>
-    <div class="muted">* Indicative total, excl. GST &amp; freight. Final amount confirmed on WhatsApp.</div>
+    <div class="muted">* Indicative total, excl. GST &amp; freight. Final amount confirmed on WhatsApp.<br>* Some finishes &amp; sizes are subject to availability.</div>
     <div class="shipnote">\u2713 GST invoice \u00b7 \u2713 Pan-India 48hr dispatch \u00b7 \u2713 Trusted by 700+ dealers</div><div class="lbl" style="padding:0 16px">YOUR DETAILS</div>
     <div class="form">
      <input id="cName" placeholder="Your Name *" value="${localStorage.getItem('aad_name')||''}">
@@ -576,7 +577,7 @@ function sendOrder(e){
  const saved=mrp-tot;
  msg+='%0A*Total Qty:* '+cart.reduce((a,b)=>a+b.qty,0)+' pcs%0A';
  if(saved>0)msg+='*MRP Total:* ₹'+mrp.toLocaleString('en-IN')+'%0A*Discount (50%):* − ₹'+saved.toLocaleString('en-IN')+'%0A';
- msg+='*Estimated Total:* ₹'+tot.toLocaleString('en-IN')+'%0A_(excl. GST & freight)_';
+ msg+='*Estimated Total:* ₹'+tot.toLocaleString('en-IN')+'%0A_(excl. GST & freight)_%0A_Some finishes & sizes subject to availability._';
  try{var oh=JSON.parse(localStorage.getItem('aad_orders')||'[]');oh.unshift({d:Date.now(),items:JSON.parse(JSON.stringify(cart)),tot:tot,qty:cart.reduce((a,b)=>a+b.qty,0)});localStorage.setItem('aad_orders',JSON.stringify(oh.slice(0,10)));}catch(err){}
  e.target.href='https://wa.me/'+WA+'?text='+msg;
 }
