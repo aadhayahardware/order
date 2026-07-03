@@ -475,6 +475,18 @@ body{overflow-x:hidden;max-width:100vw}
    <div class="inforow nolink"><span class="ic">🧾</span><div><div class="it">GSTIN</div><div class="iv">24BITPG5534R1ZI</div></div></div>
    <div class="inforow nolink"><span class="ic">🏢</span><div><div class="it">Registered Name</div><div class="iv">Shivam Hardware</div></div></div>
 
+   <div class="lbl">🆕 NEW PRODUCT LAUNCHES</div>
+   <div id="nlList"></div>
+
+   <div class="lbl">🌐 CONNECT WITH US</div>
+   <div id="socList"></div>
+
+   <div class="lbl">🏆 WHY AADHAYA</div>
+   <div class="inforow nolink"><span class="ic">🏭</span><div><div class="it">Factory-Direct Pricing</div><div class="iv">Straight from the Rajkot manufacturer — no middlemen</div></div></div>
+   <div class="inforow nolink"><span class="ic">🛡️</span><div><div class="it">Premium SS Grade</div><div class="iv">Corrosion-resistant stainless steel · 6 signature finishes</div></div></div>
+   <div class="inforow nolink"><span class="ic">🚚</span><div><div class="it">48hr Dispatch · Pan-India</div><div class="iv">GST invoice with every order · LR shared on WhatsApp</div></div></div>
+   <div class="inforow nolink"><span class="ic">👥</span><div><div class="it">Trusted by 700+ Dealers</div><div class="iv">Since 2012 · 130+ products across 12 categories</div></div></div>
+
    <div class="lbl">POLICIES</div>
    <div style="padding:2px 0 10px">
     <details style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px">
@@ -800,7 +812,30 @@ function sendOrder(e){
 }
 function reorder(i){var oh=JSON.parse(localStorage.getItem('aad_orders')||'[]');if(!oh[i])return;cart=JSON.parse(JSON.stringify(oh[i].items));saveCart();closeAll();openCart();toast('Order loaded \u2014 review & send');}
 
-function openInfo(){var oh=JSON.parse(localStorage.getItem('aad_orders')||'[]');var el=document.getElementById('ohList');if(el)el.innerHTML=oh.length?oh.map(function(o,i){return '<div class="ohrow"><div class="ohi"><div class="oht">'+o.qty+' pcs \u00b7 \u20b9'+o.tot.toLocaleString('en-IN')+'</div><div class="ohd">'+new Date(o.d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+' \u00b7 '+o.items.length+' item(s)</div></div><button class="ohb" onclick="reorder('+i+')">Reorder</button></div>'}).join(''):'<div style="color:var(--mut);font-size:12px;padding:2px 0 6px">No past orders yet. Orders you send will appear here for one-tap reordering.</div>';document.getElementById('infoSheet').classList.add('open');document.getElementById('ovbg').classList.add('open')}
+/* Social profiles — add a URL to make the row appear (empty = hidden) */
+const SOCIALS=[
+ {n:'WhatsApp',v:'Orders & enquiry · +91 99132 35199',ic:'💬',u:'https://wa.me/919913235199?text=Hello%20AADHAYA%20Hardware!'},
+ {n:'Website',v:'aadhayahardware.com',ic:'🌐',u:'https://aadhayahardware.com'},
+ {n:'Instagram',v:'Product showcases & new launches',ic:'📸',u:''},
+ {n:'Facebook',v:'Follow our page',ic:'👍',u:''},
+ {n:'IndiaMART',v:'Verified supplier profile',ic:'🛒',u:''}
+];
+function fillInfoExtras(){
+ var nl=document.getElementById('nlList');
+ if(nl){var nps=P.filter(function(p){return p.isNew});
+  nl.innerHTML=nps.length?nps.map(function(p){
+   return '<div class="inforow" onclick="closeAll();openSheet(\''+p.code+'\')" style="cursor:pointer">'
+    +'<img loading="lazy" src="'+IMG[p.code]+'" style="width:40px;height:40px;border-radius:9px;background:#fff;object-fit:cover;flex:0 0 auto">'
+    +'<div><div class="it">'+p.name+' <span style="color:var(--gold2);font-size:9px;letter-spacing:1.5px;border:1px solid rgba(200,168,74,.45);border-radius:8px;padding:1px 6px;margin-left:4px">NEW</span></div>'
+    +'<div class="iv">'+p.code+' · '+(isEnq(p)?'Price on enquiry':'From '+money(minNet(p)))+'</div></div></div>'
+  }).join(''):'<div style="color:var(--mut);font-size:12px;padding:2px 0 6px">New launches coming soon — stay tuned.</div>';}
+ var sc=document.getElementById('socList');
+ if(sc){sc.innerHTML=SOCIALS.filter(function(s){return s.u}).map(function(s){
+  return '<a class="inforow" href="'+s.u+'" target="_blank" rel="noopener"><span class="ic">'+s.ic+'</span>'
+   +'<div><div class="it">'+s.n+'</div><div class="iv">'+s.v+'</div></div></a>'
+ }).join('');}
+}
+function openInfo(){fillInfoExtras();var oh=JSON.parse(localStorage.getItem('aad_orders')||'[]');var el=document.getElementById('ohList');if(el)el.innerHTML=oh.length?oh.map(function(o,i){return '<div class="ohrow"><div class="ohi"><div class="oht">'+o.qty+' pcs \u00b7 \u20b9'+o.tot.toLocaleString('en-IN')+'</div><div class="ohd">'+new Date(o.d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+' \u00b7 '+o.items.length+' item(s)</div></div><button class="ohb" onclick="reorder('+i+')">Reorder</button></div>'}).join(''):'<div style="color:var(--mut);font-size:12px;padding:2px 0 6px">No past orders yet. Orders you send will appear here for one-tap reordering.</div>';document.getElementById('infoSheet').classList.add('open');document.getElementById('ovbg').classList.add('open')}
 let tt;function toast(m,btn,fn){const e=document.getElementById('toast');
  if(btn&&fn){window.__toastFn=fn;e.innerHTML='<span></span><button class="tub" onclick="window.__toastFn&&window.__toastFn()"></button>';e.firstChild.textContent=m;e.lastChild.textContent=btn;}
  else e.textContent=m;
