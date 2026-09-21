@@ -27,6 +27,7 @@ function css() {
     ".lsb-strip i{display:inline-block;vertical-align:middle;margin:-2px 8px 0 0;width:8px;height:8px;border-radius:50%;background:#4FB07A;box-shadow:0 0 9px rgba(79,176,122,.95);animation:lsbPulse 2s ease-in-out infinite}" +
     ".lsb-strip b{color:#6FD79B;font-weight:700}" +
     "#landing .lsb{margin:18px auto 4px}" +
+    "#heroWrap{display:none!important}" +   /* old "Order Direct. Delivered in 48hr." hero card is replaced by this poster; delete this line to bring it back */
     "#lsbBox{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.93);display:none;align-items:center;justify-content:center;padding:14px;cursor:zoom-out}" +
     "#lsbBox.on{display:flex}" +
     "#lsbBox img{max-width:96vw;max-height:94vh;width:auto;height:auto;border-radius:10px;box-shadow:0 10px 60px rgba(0,0,0,.7)}" +
