@@ -6,6 +6,8 @@
    3. Ek hi order kitni bhi baar bheja jaaye, database me EK hi banta hai (client_ref).
    4. Din me ek baar Order App apni product list bhejta hai — accounting app ke
       "Order App sync" screen par mismatch dikhane ke liye.
+   5. Order ke baad dealer wapas aaye to use order number + bot par STATUS bhejne ka button dikhta hai
+      (dealers ko bot number 81538 88813 ki aadat daalne ke liye).
    Hatana ho to: index.html se iski <script> line hata dijiye. */
 (function () {
 "use strict";
@@ -14,6 +16,7 @@ var BASE = "https://rtgfbovemrxfsiflwmvp.supabase.co/rest/v1/rpc/";
 var KEY = "sb_publishable_BjpMZA25KLEHoDiX1FYZmA_W_7XBwjN";
 var QKEY = "aad_oq";
 var MAX_AGE = 7 * 86400000, MAX_TRIES = 40;
+var BOT = "918153888813", BOT_SHOW = "81538 88813";
 
 function val(id) { var el = document.getElementById(id); return el ? String(el.value || "").trim() : ""; }
 function hash(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
@@ -60,6 +63,12 @@ function flush(keep) {
         if (res.ok || res.status === 400) {           // 400 = data hi galat, dobara bhejne ka fayda nahi
           qSet(qGet().filter(function (x) { return x.p.client_ref !== item.p.client_ref; }));
         }
+        if (res.ok) return res.json().then(function (j) {
+          if (j && j.order_no && !j.dup) {
+            try { localStorage.setItem("aad_last_order", JSON.stringify({ no: j.order_no, t: Date.now(), shown: false })); } catch (e) {}
+            showBanner();
+          }
+        }).catch(function () {});
       })
       .catch(function () {})
       .then(next);
@@ -84,6 +93,44 @@ function push() {
     qSet(q);
     flush(true);                                         // keepalive: WhatsApp khule tab bhi request poori ho
   } catch (e) {}
+}
+
+/* ---------- bot number: order ke baad banner + cart me chhota note ---------- */
+function css() {
+  if (document.getElementById("aad-bot-css")) return;
+  var st = document.createElement("style"); st.id = "aad-bot-css";
+  st.textContent =
+    "#aadBotBan{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:99999;width:min(94vw,440px);" +
+    "background:#141414;border:1px solid #C8A84A;border-radius:14px;padding:14px 16px;color:#eee;font:14px/1.45 Poppins,system-ui,sans-serif;" +
+    "box-shadow:0 10px 30px rgba(0,0,0,.45)}#aadBotBan b{color:#C8A84A}#aadBotBan .x{position:absolute;top:6px;right:10px;cursor:pointer;color:#888;font-size:18px}" +
+    "#aadBotBan a{display:block;margin-top:10px;text-align:center;background:#25D366;color:#fff;text-decoration:none;font-weight:700;padding:10px;border-radius:10px}" +
+    ".aad-botnote{margin:8px 16px 0;font-size:12px;color:#aaa;text-align:center}.aad-botnote b{color:#C8A84A}";
+  (document.head || document.documentElement).appendChild(st);
+}
+function showBanner() {
+  try {
+    if (document.visibilityState === "hidden") return;           // WhatsApp khula hai — wapas aane par dikhayenge
+    var o = JSON.parse(localStorage.getItem("aad_last_order") || "null");
+    if (!o || o.shown || Date.now() - o.t > 6 * 3600000) return;
+    css();
+    var old = document.getElementById("aadBotBan"); if (old) old.remove();
+    var d = document.createElement("div"); d.id = "aadBotBan";
+    d.innerHTML = '<span class="x">\u00d7</span>\u2705 Aapka order <b>' + o.no + '</b> hamare system me aa gaya.<br>' +
+      'Status, stock ya apna hisaab jaanne ke liye hamare <b>AADHAYA WhatsApp (' + BOT_SHOW + ')</b> par likhiye.' +
+      '<a target="_blank" rel="noopener" href="https://wa.me/' + BOT + '?text=' + encodeURIComponent("STATUS " + o.no) + '">\ud83d\udcac STATUS bhejo</a>';
+    document.body.appendChild(d);
+    d.querySelector(".x").onclick = function () { d.remove(); };
+    o.shown = true; localStorage.setItem("aad_last_order", JSON.stringify(o));
+    setTimeout(function () { if (d.parentNode) d.remove(); }, 25000);
+  } catch (e) {}
+}
+function cartNote() {
+  var b = document.getElementById("sendBtn");
+  if (!b || b.style.display === "none" || document.querySelector(".aad-botnote")) return;
+  css();
+  var n = document.createElement("div"); n.className = "aad-botnote";
+  n.innerHTML = "Order ka status aur stock: WhatsApp <b>" + BOT_SHOW + "</b> par <b>STATUS</b> bhejein";
+  b.parentNode.insertBefore(n, b.nextSibling);
 }
 
 /* ---------- catalogue report (din me ek baar) ---------- */
@@ -114,6 +161,12 @@ function start() {
   setInterval(function () { flush(false); }, 30000);
   window.addEventListener("online", function () { flush(false); });
   setTimeout(reportCatalog, 4000);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { flush(false); setTimeout(showBanner, 600); } });
+  setTimeout(showBanner, 2000);
+  if (window.MutationObserver) {
+    var sh = document.getElementById("cartSheet");
+    if (sh) new MutationObserver(function () { cartNote(); }).observe(sh, { attributes: true, childList: true, subtree: true });
+  }
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
