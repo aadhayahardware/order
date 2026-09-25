@@ -27,15 +27,31 @@ function css() {
     ".lsb-strip i{display:inline-block;vertical-align:middle;margin:-2px 8px 0 0;width:8px;height:8px;border-radius:50%;background:#4FB07A;box-shadow:0 0 9px rgba(79,176,122,.95);animation:lsbPulse 2s ease-in-out infinite}" +
     ".lsb-strip b{color:#6FD79B;font-weight:700}" +
     "#landing .lsb{margin:18px auto 4px}" +
+    /* inside the app the poster collapses to a slim strip so products stay above the fold; tap opens the full poster */
+    ".lsb.slim{border-radius:14px;background:linear-gradient(90deg,#15120a,#0d0d0d 70%);border-color:rgba(200,168,74,.32)}" +
+    ".lsm{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}" +
+    ".lsm i{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:#4FB07A;box-shadow:0 0 9px rgba(79,176,122,.95);animation:lsbPulse 2s ease-in-out infinite}" +
+    ".lsm-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}" +
+    ".lsm-t b{font-size:10px;letter-spacing:2.4px;color:#E2C870;font-weight:700}" +
+    ".lsm-t span{font-size:12px;color:#b5b5b5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+    ".lsm-t span b{font-size:12px;letter-spacing:0;color:#6FD79B}" +
+    ".lsm-live{display:none}.lsb.has .lsm-live{display:block}.lsb.has .lsm-idle{display:none}" +
+    ".lsm-go{flex:0 0 auto;font-size:11px;letter-spacing:.6px;color:#E2C870;border:1px solid rgba(200,168,74,.45);border-radius:20px;padding:6px 11px}" +
     "#heroWrap{display:none!important}" +   /* old "Order Direct. Delivered in 48hr." hero card is replaced by this poster; delete this line to bring it back */
     "#lsbBox{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.93);display:none;align-items:center;justify-content:center;padding:14px;cursor:zoom-out}" +
     "#lsbBox.on{display:flex}" +
     "#lsbBox img{max-width:96vw;max-height:94vh;width:auto;height:auto;border-radius:10px;box-shadow:0 10px 60px rgba(0,0,0,.7)}" +
-    "@media (prefers-reduced-motion:reduce){.lsb-strip i{animation:none}}";
+    "@media (prefers-reduced-motion:reduce){.lsb-strip i,.lsm i{animation:none}}";
   (document.head || document.documentElement).appendChild(s);
 }
 
-function html() {
+function html(where) {
+  if (where === "app") {
+    return '<button type="button" class="lsm" aria-label="Open Live Stock poster"><i></i><span class="lsm-t"><b>LIVE STOCK</b>' +
+      '<span class="lsm-idle">See what’s ready before you order</span>' +
+      '<span class="lsm-live"><b data-k="pcs">0</b> pcs ready · <span data-k="prod">0</span> products in stock</span></span>' +
+      '<span class="lsm-go">View</span></button>';
+  }
   return '<img src="' + IMG + '" width="1080" height="1350" alt="AADHAYA Live Stock — see what’s ready before you order" decoding="async">' +
     '<div class="lsb-strip"><i></i><span><b>Live now:</b> <span data-k="pcs">0</span> pcs · <span data-k="prod">0</span> products in stock · <span data-k="ago">just now</span></span></div>';
 }
@@ -54,10 +70,10 @@ function box() {
 
 function make(where) {
   var el = document.createElement("div");
-  el.className = "lsb";
+  el.className = where === "app" ? "lsb slim" : "lsb";
   el.setAttribute("data-where", where);
-  el.innerHTML = html();
-  el.querySelector("img").addEventListener("click", function () { box().classList.add("on"); });
+  el.innerHTML = html(where);
+  el.querySelector(where === "app" ? ".lsm" : "img").addEventListener("click", function () { box().classList.add("on"); });
   return el;
 }
 
@@ -90,6 +106,7 @@ function paint() {
       if (show !== el.classList.contains("on")) el.classList.toggle("on", show);
       var st = el.querySelector(".lsb-strip");
       if (st && !!ok !== st.classList.contains("on")) st.classList.toggle("on", !!ok);
+      if (!!ok !== el.classList.contains("has")) el.classList.toggle("has", !!ok);
       if (!ok) continue;
       var q = el.querySelectorAll("[data-k]");
       for (var j = 0; j < q.length; j++) {
