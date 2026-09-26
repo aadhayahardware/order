@@ -639,7 +639,8 @@ function ordClick(e) {
 }
 
 /* ---------- 11. big live-stock alerts (product page, options, cards, filter) ---------- */
-var LOW = 10, onlyStk = false, stkPop = '';
+var LOW = 10, stkPop = '';
+function pcs(n) { return n + (n === 1 ? ' pc' : ' pcs'); }
 function stkTot(code) { var m = (QSTK || {})[code]; if (!m) return 0; var t = 0; for (var k in m) t += m[k]; return t; }
 function stkList(code) {
   var m = (QSTK || {})[code] || {}, out = [];
@@ -657,21 +658,9 @@ function paintCardsStk() {
     pc.classList.toggle('u-hasstk', n > 0);
     if (!n) { if (b) b.parentNode.removeChild(b); return; }
     if (!b) { b = document.createElement('span'); im.appendChild(b); }
-    var cls = 'u-sb' + (n <= LOW ? ' low' : ''), tx = n <= LOW ? 'ONLY ' + n + ' LEFT' : 'IN STOCK';
+    var cls = 'u-sb' + (n <= LOW ? ' low' : ''), tx = pcs(n).toUpperCase();
     if (b.className !== cls) b.className = cls; if (b.textContent !== tx) b.textContent = tx;
   });
-  var sf = $('#content .subf');
-  if (sf && !$('.u-stkchip', sf)) {
-    var c = document.createElement('div'); c.className = 'sfc u-stkchip';
-    c.onclick = function () { onlyStk = !onlyStk; paintCardsStk(); };
-    sf.insertBefore(c, sf.firstChild);
-  }
-  var chip = $('#content .u-stkchip');
-  if (chip) {
-    var cnt = $$('#content .pc.u-hasstk').length, h = '<span class="u-gd"></span>Ready stock (' + cnt + ')';
-    chip.classList.toggle('on', onlyStk); if (chip.innerHTML !== h) chip.innerHTML = h;
-  }
-  var ct = $('#content'); if (ct) ct.classList.toggle('u-only', onlyStk && !!chip);
 }
 function markOpt(o, n) {
   o.classList.toggle('u-has', n > 0);
@@ -689,21 +678,17 @@ function paintPdpStk() {
   var code = cur.code, tot = stkTot(code), L = stkList(code), fins = cur.finishes || [];
   $$('#szOpts .opt').forEach(function (o) { var s = o.textContent.trim(), n = 0; L.forEach(function (v) { if (v.s === s) n += v.q; }); markOpt(o, n); });
   $$('#fnOpts .opt').forEach(function (o, i) { markOpt(o, stockOf(code, selSize, fins[i] || null)); });
-  if (!tot) { el.className = 'u-none'; el.innerHTML = ''; el.removeAttribute('data-k'); return; }
   var q = stockOf(code, selSize, selFin), v = [selSize, selFin].filter(Boolean).join(' / ');
-  var key = code + '|' + v + '|' + q + '|' + tot, h, cls;
-  if (q > 0) {
-    var low = q <= LOW;
-    cls = 'u-ok' + (low ? ' low' : '');
-    h = '<div class="u-sk1">' + ic(low ? 'info' : 'check') + '<span>' + (low ? 'Only ' + q + (q === 1 ? ' pc' : ' pcs') + ' left' : 'In stock') + '</span></div>' +
-        '<div class="u-sk2">' + (low ? 'Limited ready stock — order fast' : '<b>' + q + (q === 1 ? ' pc' : ' pcs') + '</b> ready to dispatch') + (v ? ' · ' + esc(v) : '') + '</div>';
-  } else {
-    cls = 'u-alt';
-    h = '<div class="u-sk1 sm">' + ic('box') + '<span>Ready stock available in:</span></div><div class="u-skc">' +
-        L.slice(0, 8).map(function (x) {
-          var lab = [x.s !== '-' ? x.s : '', x.f !== '-' ? x.f : ''].filter(Boolean).join(' / ') || 'Standard';
-          return '<button type="button" data-s="' + esc(x.s) + '" data-f="' + esc(x.f) + '">' + esc(lab) + ' · <b>' + x.q + ' pcs</b></button>';
-        }).join('') + '</div><div class="u-sk3">Tap to select · selected option is not in ready stock</div>';
+  var key = code + '|' + v + '|' + q + '|' + tot;
+  var cls = 'u-ok' + (q <= LOW ? ' low' : '');
+  var h = '<div class="u-sk1">' + ic(q > LOW ? 'check' : 'box') + '<span>Live stock: ' + pcs(q) + '</span></div>' +
+          '<div class="u-sk2">' + (v ? esc(v) + ' · ' : '') + (q > 0 ? 'ready in godown' : 'abhi godown me nahi') + ' · updated live</div>';
+  if (q <= 0 && tot > 0) {
+    h += '<div class="u-sk4">Stock available in:</div><div class="u-skc">' +
+         L.slice(0, 8).map(function (x) {
+           var lab = [x.s !== '-' ? x.s : '', x.f !== '-' ? x.f : ''].filter(Boolean).join(' / ') || 'Standard';
+           return '<button type="button" data-s="' + esc(x.s) + '" data-f="' + esc(x.f) + '">' + esc(lab) + ' · <b>' + pcs(x.q) + '</b></button>';
+         }).join('') + '</div>';
   }
   if (el.getAttribute('data-k') !== key) {
     el.className = cls; el.innerHTML = h; el.setAttribute('data-k', key);

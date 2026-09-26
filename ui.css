@@ -531,10 +531,8 @@ html #stkSheet{display:none!important}
 .opt.u-has:after{content:attr(data-stk);position:absolute;top:-9px;right:-7px;min-width:18px;text-align:center;background:#16A34A;color:#fff;font-size:10px;font-weight:800;border-radius:9px;padding:0 5px;line-height:16px;border:2px solid #fff}
 .u-sb{position:absolute;left:9px;bottom:10px;z-index:2;background:#16A34A;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.7px;padding:5px 9px;border-radius:7px;box-shadow:0 6px 14px -6px rgba(22,163,74,.8)}
 .u-sb.low{background:#DC2626;box-shadow:0 6px 14px -6px rgba(220,38,38,.8)}
-html .stk-line{font-size:12.5px!important;font-weight:700!important}
-.u-stkchip .u-gd{display:inline-block;width:8px;height:8px;border-radius:50%;background:#16A34A;margin-right:6px;vertical-align:0}
-.sfc.u-stkchip{border-color:#86D3A5!important;color:#0B7A36!important;font-weight:700!important}
-.sfc.u-stkchip.on{background:#16A34A!important;border-color:#16A34A!important;color:#fff!important}
-.sfc.u-stkchip.on .u-gd{background:#fff}
-#content.u-only .pc:not(.u-hasstk){display:none!important}
+html .stk-line{display:none!important}
 @media(prefers-reduced-motion:reduce){#uStk.u-ok:after,#uStk.pop{animation:none}}
+#uStk .u-sk4{font-size:13px;font-weight:700;margin-top:12px;color:var(--u-ink)}
+#uStk.low .u-skc button{border-color:#86D3A5;color:#0B7A36}
+#uStk .u-sk1{font-size:clamp(19px,5.6vw,26px);white-space:nowrap}
