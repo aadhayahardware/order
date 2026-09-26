@@ -227,6 +227,7 @@ function enhanceContent() {
       s.appendChild(b);
     });
   }
+  try { paintCardsStk(); } catch (e) {}
 }
 function selectCat(name) {
   try { closeAll(); } catch (e) {}
@@ -292,6 +293,7 @@ function enhancePDP() {
     qr.parentNode.appendChild(a);
   }
   markRow();
+  try { paintPdpStk(); } catch (e) {}
   var wa = $('#sheet .u-waic');
   if (wa) wa.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hello AADHAYA, I have an enquiry about ' + cur.name + ' (' + cur.code + ').');
 }
@@ -306,7 +308,7 @@ function pdpSetup() {
   if (body && window.MutationObserver) new MutationObserver(enhancePDP).observe(body, { childList: true });
   if (typeof window.refreshPrice === 'function') {
     var orig = window.refreshPrice;
-    window.refreshPrice = function () { var r = orig.apply(this, arguments); try { markRow(); } catch (e) {} return r; };
+    window.refreshPrice = function () { var r = orig.apply(this, arguments); try { markRow(); } catch (e) {} try { paintPdpStk(); } catch (e) {} return r; };
   }
 }
 
@@ -636,6 +638,87 @@ function ordClick(e) {
   }
 }
 
+/* ---------- 11. big live-stock alerts (product page, options, cards, filter) ---------- */
+var LOW = 10, onlyStk = false, stkPop = '';
+function stkTot(code) { var m = (QSTK || {})[code]; if (!m) return 0; var t = 0; for (var k in m) t += m[k]; return t; }
+function stkList(code) {
+  var m = (QSTK || {})[code] || {}, out = [];
+  for (var k in m) { var a = k.split('||'); out.push({ s: a[0], f: a[1], q: m[k] }); }
+  return out.sort(function (a, b) { return b.q - a.q; });
+}
+function refreshStock() { QSTK_AT = 0; return loadStock().then(paintStkAll); }
+function paintStkAll() { try { paintCardsStk(); } catch (e) {} try { paintPdpStk(); } catch (e) {} try { paintQuick(); } catch (e) {} }
+function paintCardsStk() {
+  if (!QSTK) return;
+  $$('#content .pc').forEach(function (pc) {
+    var m = (pc.getAttribute('onclick') || '').match(/openSheet\('([^']+)'\)/); if (!m) return;
+    var n = stkTot(m[1]), im = $('.imw', pc); if (!im) return;
+    var b = $('.u-sb', im);
+    pc.classList.toggle('u-hasstk', n > 0);
+    if (!n) { if (b) b.parentNode.removeChild(b); return; }
+    if (!b) { b = document.createElement('span'); im.appendChild(b); }
+    var cls = 'u-sb' + (n <= LOW ? ' low' : ''), tx = n <= LOW ? 'ONLY ' + n + ' LEFT' : 'IN STOCK';
+    if (b.className !== cls) b.className = cls; if (b.textContent !== tx) b.textContent = tx;
+  });
+  var sf = $('#content .subf');
+  if (sf && !$('.u-stkchip', sf)) {
+    var c = document.createElement('div'); c.className = 'sfc u-stkchip';
+    c.onclick = function () { onlyStk = !onlyStk; paintCardsStk(); };
+    sf.insertBefore(c, sf.firstChild);
+  }
+  var chip = $('#content .u-stkchip');
+  if (chip) {
+    var cnt = $$('#content .pc.u-hasstk').length, h = '<span class="u-gd"></span>Ready stock (' + cnt + ')';
+    chip.classList.toggle('on', onlyStk); if (chip.innerHTML !== h) chip.innerHTML = h;
+  }
+  var ct = $('#content'); if (ct) ct.classList.toggle('u-only', onlyStk && !!chip);
+}
+function markOpt(o, n) {
+  o.classList.toggle('u-has', n > 0);
+  if (n > 0) o.setAttribute('data-stk', n > 999 ? '999+' : String(n)); else o.removeAttribute('data-stk');
+}
+function paintPdpStk() {
+  var pad = $('#shBody .sh-pad'); if (!pad || !cur || !QSTK) return;
+  var el = $('#uStk', pad);
+  if (!el) {
+    el = document.createElement('div'); el.id = 'uStk'; el.className = 'u-none';
+    var mdl = $('.mdl', pad);
+    if (mdl && mdl.parentNode === pad) pad.insertBefore(el, mdl.nextSibling); else pad.insertBefore(el, pad.firstChild);
+    el.addEventListener('click', stkPick);
+  }
+  var code = cur.code, tot = stkTot(code), L = stkList(code), fins = cur.finishes || [];
+  $$('#szOpts .opt').forEach(function (o) { var s = o.textContent.trim(), n = 0; L.forEach(function (v) { if (v.s === s) n += v.q; }); markOpt(o, n); });
+  $$('#fnOpts .opt').forEach(function (o, i) { markOpt(o, stockOf(code, selSize, fins[i] || null)); });
+  if (!tot) { el.className = 'u-none'; el.innerHTML = ''; el.removeAttribute('data-k'); return; }
+  var q = stockOf(code, selSize, selFin), v = [selSize, selFin].filter(Boolean).join(' / ');
+  var key = code + '|' + v + '|' + q + '|' + tot, h, cls;
+  if (q > 0) {
+    var low = q <= LOW;
+    cls = 'u-ok' + (low ? ' low' : '');
+    h = '<div class="u-sk1">' + ic(low ? 'info' : 'check') + '<span>' + (low ? 'Only ' + q + (q === 1 ? ' pc' : ' pcs') + ' left' : 'In stock') + '</span></div>' +
+        '<div class="u-sk2">' + (low ? 'Limited ready stock — order fast' : '<b>' + q + (q === 1 ? ' pc' : ' pcs') + '</b> ready to dispatch') + (v ? ' · ' + esc(v) : '') + '</div>';
+  } else {
+    cls = 'u-alt';
+    h = '<div class="u-sk1 sm">' + ic('box') + '<span>Ready stock available in:</span></div><div class="u-skc">' +
+        L.slice(0, 8).map(function (x) {
+          var lab = [x.s !== '-' ? x.s : '', x.f !== '-' ? x.f : ''].filter(Boolean).join(' / ') || 'Standard';
+          return '<button type="button" data-s="' + esc(x.s) + '" data-f="' + esc(x.f) + '">' + esc(lab) + ' · <b>' + x.q + ' pcs</b></button>';
+        }).join('') + '</div><div class="u-sk3">Tap to select · selected option is not in ready stock</div>';
+  }
+  if (el.getAttribute('data-k') !== key) {
+    el.className = cls; el.innerHTML = h; el.setAttribute('data-k', key);
+    if (stkPop !== key) { stkPop = key; void el.offsetWidth; el.classList.add('pop'); }
+  }
+}
+function stkPick(e) {
+  var b = e.target.closest('button[data-s]'); if (!b || !cur) return;
+  var s = b.getAttribute('data-s'), f = b.getAttribute('data-f');
+  if (s && s !== '-') { var so = $$('#szOpts .opt').filter(function (o) { return o.textContent.trim() === s; })[0]; if (so) so.click(); }
+  var fi = (cur.finishes || []).indexOf(f);
+  if (fi > -1) { var fo = $$('#fnOpts .opt')[fi]; if (fo) fo.click(); }
+  paintPdpStk();
+}
+
 /* ---------- boot ---------- */
 function start() {
   if (typeof P === 'undefined' || !document.getElementById('content')) return;
@@ -647,6 +730,7 @@ function start() {
   try { infoSetup(); } catch (e) {}
   try { tabbar(); } catch (e) {}
   enhanceContent();
+  refreshStock(); setInterval(refreshStock, 60000);
   var c = $('#content'), hw = $('#heroWrap');
   if (window.MutationObserver) {
     if (c) new MutationObserver(function () { try { enhanceContent(); } catch (e) {} }).observe(c, { childList: true });
