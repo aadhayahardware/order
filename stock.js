@@ -81,9 +81,8 @@ function paintCards() {
     var el = bd.querySelector(".stk-line");
     if (!n) { if (el && el.parentNode) el.parentNode.removeChild(el); continue; }
     if (!el) { el = document.createElement("div"); bd.appendChild(el); }
-    var prof = m[1].indexOf("AH-ALP-") === 0;
-    var cls = "stk-line" + (!prof && n <= LOW ? " low" : "");
-    var tx  = prof ? ("Ready-cut stock \u00b7 " + n + " pcs") : label(n);
+    var cls = "stk-line" + (n <= LOW ? " low" : "");
+    var tx  = label(n);
     if (el.className !== cls) el.className = cls;
     if (el.textContent !== tx) el.textContent = tx;
   }
@@ -128,7 +127,6 @@ function paintSheet() {
   var c = curCode();
   if (!ready || !c) { if (el.className !== "none") el.className = "none"; return; }
   var sz = selSize(), fn = selFinish(), map = STK[c] || {};
-  if (c.indexOf("AH-ALP-") === 0) { paintReadyCut(el, map, fn); return; }
   var q = map[sz + "||" + fn];
   if (q === undefined) q = map["-||" + fn];
   if (q === undefined) q = map[sz + "||-"];
