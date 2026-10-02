@@ -762,7 +762,7 @@ function openCart(){
   document.getElementById('sendBtn').style.display='block';
   let tot=0, mrp=0;const items=cart.map((it,i)=>{const lt=it.price*it.qty;tot+=lt;mrp+=(it.orig||it.price)*it.qty;
    const priceLine=!it.price
-     ? `On enquiry × ${it.qty}`
+     ? `Rate: please confirm on WhatsApp · Qty ${it.qty}`
      : it.disc
      ? `<s style="color:var(--mut)">${money(it.orig)}</s> ${money(it.price)} × ${it.qty} = ${money(lt)}`
      : `${money(it.price)} × ${it.qty} = ${money(lt)}`;
@@ -813,7 +813,7 @@ function sendOrder(e){
  cart.forEach((it,i)=>{const lt=it.price*it.qty;tot+=lt;mrp+=(it.orig||it.price)*it.qty;
   msg+=(i+1)+'. '+it.name+' ('+it.code+')%0A';
   const v=[it.size,it.finish].filter(Boolean).join(' / ');if(v)msg+='   '+v+'%0A';
-  if(!it.price)msg+='   Qty: '+it.qty+' — _price on enquiry_%0A';
+  if(!it.price)msg+='   Qty: '+it.qty+' — _Rate: please confirm on WhatsApp_%0A';
   else if(it.disc)msg+='   Qty: '+it.qty+' × ₹'+it.price+' (MRP ₹'+it.orig+', 50% off) = ₹'+lt+'%0A';
   else msg+='   Qty: '+it.qty+' × ₹'+it.price+' = ₹'+lt+'%0A';
  });
@@ -860,5 +860,5 @@ function closeAll(){['sheet','cartSheet','infoSheet','connectSheet'].forEach(id=
 updateBadge();render();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>
-</body></html><script src="stock.js?v=2"></script><script src="price.js"></script><script src="poster.js"></script><script src="order-sync.js"></script><script src="ui.js?v=3"></script><script src="visits.js"></script>
+</body></html><script src="stock.js?v=3"></script><script src="price.js"></script><script src="poster.js"></script><script src="order-sync.js"></script><script src="ui.js?v=3"></script><script src="visits.js"></script>
 

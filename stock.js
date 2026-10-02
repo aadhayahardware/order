@@ -25,7 +25,9 @@ function css() {
     "#stkSheet.rc:before{display:inline-block;vertical-align:middle;margin-right:8px}" +
     ".rc-h{display:inline;font-size:14px}" +
     ".rc-g{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}" +
-    ".rc-c{padding:5px 9px;border-radius:8px;background:rgba(79,176,122,.12);border:1px solid rgba(79,176,122,.35);font-size:12.5px;font-weight:700;color:#BFEBD0}" +
+    ".rc-c{padding:7px 10px;border-radius:9px;background:rgba(79,176,122,.12);border:1px solid rgba(79,176,122,.35);font:inherit;font-size:12.5px;font-weight:700;color:#BFEBD0;cursor:pointer;-webkit-tap-highlight-color:transparent}" +
+    ".rc-c:active{transform:scale(.96)}.rc-c:focus-visible{outline:2px solid #6FD79B;outline-offset:2px}" +
+    ".rc-c i{font-style:normal;margin-left:7px;padding:1px 6px;border-radius:6px;background:#4FB07A;color:#0f1a13}" +
     ".rc-c b{color:#6FD79B;margin-left:5px}" +
     ".rc-n{margin-top:8px;font-size:11.5px;font-weight:600;opacity:.8}";
   (document.head || document.documentElement).appendChild(s);
@@ -148,10 +150,35 @@ function paintReadyCut(el, map, fn) {
   if (!list.length) { if (el.className !== "none") { el.className = "none"; el.innerHTML = ""; } return; }
   list.sort(function (a, b) { return inch(a.s) - inch(b.s); });
   var h = '<span class="rc-h">Ready-cut stock \u2014 ' + fn + '</span><div class="rc-g">';
-  list.forEach(function (r) { h += '<span class="rc-c">' + r.s + '<b>' + r.q + ' pcs</b></span>'; });
-  h += '</div><div class="rc-n">Turant dispatch. Baaki size order par cut honge.</div>';
+  list.forEach(function (r) {
+    h += '<button type="button" class="rc-c" data-s="' + r.s.replace(/"/g, '&quot;') + '" data-f="' + fn.replace(/"/g, '&quot;') + '" data-q="' + r.q + '">' +
+         r.s + '<b>' + r.q + ' pcs</b><i>+ Add</i></button>';
+  });
+  h += '</div><div class="rc-n">Size par tap karke seedha order me daaliye (upar wali quantity ke hisaab se). Turant dispatch. Rate: please confirm on WhatsApp.</div>';
   if (el.className !== "rc") el.className = "rc";
   if (el.innerHTML !== h) el.innerHTML = h;
+}
+
+function addReadyCut(btn) {
+  try {
+    var size = btn.getAttribute("data-s"), fin = btn.getAttribute("data-f"), max = Number(btn.getAttribute("data-q")) || 0;
+    var c = curCode(), p = null;
+    for (var j = 0; j < P.length; j++) if (P[j].code === c) { p = P[j]; break; }
+    if (!p || !max) return;
+    var want = (typeof qty !== "undefined" && qty > 0) ? qty : 1;
+    var ex = null;
+    for (var k = 0; k < cart.length; k++) {
+      var it = cart[k];
+      if (it.code === p.code && it.size === size && it.finish === fin && it.rc) { ex = it; break; }
+    }
+    var have = ex ? ex.qty : 0, add = Math.min(want, max - have);
+    if (add <= 0) { toast("Ready stock me sirf " + max + " pcs hain \u2014 sab order me hain"); return; }
+    if (ex) ex.qty += add;
+    else cart.push({ code: p.code, name: p.name + " (Ready-cut)", size: size, finish: fin, qty: add, price: 0, orig: 0, disc: false, rc: true });
+    saveCart();
+    try { track("add_to_cart", { currency: "INR", value: 0, items: [{ item_id: p.code, item_name: p.name, item_category: p.category, quantity: add, price: 0 }] }); } catch (e) {}
+    toast("Added " + add + " pcs \u00b7 " + size + " \u00b7 " + fin + (add < want ? " (stock limit)" : ""));
+  } catch (e) {}
 }
 
 function paint() {
@@ -166,6 +193,10 @@ function later() { clearTimeout(timer); timer = setTimeout(paint, 70); }
 function start() {
   css();
   document.addEventListener("click", later, true);
+  document.addEventListener("click", function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest(".rc-c") : null;
+    if (b) { ev.preventDefault(); addReadyCut(b); }
+  });
   if (window.MutationObserver) {
     var mo = new MutationObserver(function () { if (!busy) later(); });
     var content = document.getElementById("content");
