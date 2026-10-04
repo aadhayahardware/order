@@ -11,6 +11,7 @@ var V = "1";                                 // bump when a launch video/image i
 var BASE = "https://rtgfbovemrxfsiflwmvp.supabase.co/rest/v1/v_public_stock?select=app_code,qty&qty=gt.0&order=app_code.asc";
 var KEY = "sb_publishable_BjpMZA25KLEHoDiX1FYZmA_W_7XBwjN";
 var EVERY = 60000, STOCK_DWELL = 4500, LOOP_DWELL = 7700, POSTER = "live-stock-poster.jpg?v=1";
+var LS_DWELL = 7800;                         // 3rd card from livestock.js: front 3.5s → flip → back, then slide on
 var D = null, stamp = 0;
 
 function css() {
@@ -101,7 +102,7 @@ function make(where) {
       if (!first) return;                         // first run: wait for the full video to end
       try { v.currentTime = 0; var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
       t = setTimeout(function () { go(1); }, LOOP_DWELL);
-    } else t = setTimeout(function () { go(0); }, STOCK_DWELL);
+    } else t = setTimeout(function () { go(cur + 1); }, cur >= 2 ? LS_DWELL : STOCK_DWELL);   // wraps to 0 after the last card
   }
   function toLoop() {
     if (first) return; first = true;
