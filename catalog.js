@@ -1,4 +1,4 @@
-/* AADHAYA — Catalogue → Database  (v3: DB photo + 2nd photo + auto NEW + ?item=CODE link)
+/* AADHAYA — Catalogue → Database  (v5: + categories DB se — tagline, 50% OFF, kram)
    Accounting app (Supabase) me jo product "show in app" hai aur jiska catalogue data
    (finishes / sizes / rates) bhara hai, woh yahan se order app me apne aap aa jaata hai.
    - index.html ki list (P[]) me jo product pehle se hai use yeh CHHEDTA NAHI — sirf naye add karta hai.
@@ -142,8 +142,73 @@ try {
   }).observe(document.documentElement, { childList: true, subtree: true });
 } catch (e) {}
 
+
+/* 6. Categories DB se (accounting app → Categories): tagline, 50% OFF, kram */
+var CURL = "https://rtgfbovemrxfsiflwmvp.supabase.co/rest/v1/v_public_categories?select=name,tagline,sort_order,disc&order=sort_order.asc";
+var CCK = "aad_dbcats_v1", CROWS = null;
+function txt(el, sel) { var x = el.querySelector(sel); return x ? x.textContent.trim() : ""; }
+function reorderKids(box, keyFn, order) {
+  if (!box) return;
+  var kids = [].slice.call(box.children), pos = {};
+  order.forEach(function (n, i) { pos[n] = i; });
+  var movable = kids.filter(function (k) { return pos.hasOwnProperty(keyFn(k)); });
+  if (movable.length < 2) return;
+  var anchor = movable[0].previousSibling;
+  movable.sort(function (a, b) { return pos[keyFn(a)] - pos[keyFn(b)]; });
+  movable.forEach(function (k) { box.insertBefore(k, anchor ? anchor.nextSibling : box.firstChild); anchor = k; });
+}
+function applyCats(rows) {
+  if (!Array.isArray(rows) || !rows.length) return;
+  CROWS = rows;
+  var byN = {}; rows.forEach(function (r) { byN[r.name] = r; if (r.tagline) TAGLINE[r.name] = r.tagline; });
+  /* 50% OFF */
+  try {
+    rows.forEach(function (r) {
+      var i = DISC_CATS.indexOf(r.name);
+      if (r.disc && i < 0) DISC_CATS.push(r.name);
+      if (!r.disc && i > -1) DISC_CATS.splice(i, 1);
+    });
+  } catch (e) {}
+  /* tagline + kram */
+  CATS.forEach(function (c) { if (byN[c.name] && byN[c.name].tagline) c.tagline = byN[c.name].tagline; });
+  var idx = {}; CATS.forEach(function (c, i) { idx[c.name] = i; });
+  CATS.sort(function (a, b) {
+    var x = byN[a.name] ? byN[a.name].sort_order : 1000 + idx[a.name], y = byN[b.name] ? byN[b.name].sort_order : 1000 + idx[b.name];
+    return x - y;
+  });
+  var order = CATS.map(function (c) { return c.name; });
+  reorderKids(document.getElementById("chips"), function (k) { return k.textContent.trim(); }, order);
+  var lc = document.getElementById("landCats");
+  reorderKids(lc, function (k) { return txt(k, ".lcn"); }, order);
+  if (lc) [].forEach.call(lc.children, function (k) {
+    var n = txt(k, ".lcn"), c = byN[n]; if (!c) return;
+    var t = k.querySelector(".lct"); if (t && c.tagline) t.textContent = c.tagline.toUpperCase();
+    var box = k.querySelector(".lcimg"), b = k.querySelector(".lcoff");
+    if (c.disc && !b && box) { var s = document.createElement("span"); s.className = "lcoff"; s.textContent = "50% OFF"; box.insertBefore(s, box.firstChild); }
+    if (!c.disc && b) b.remove();
+  });
+  var row = document.querySelector("#uCatsRow .u-crow");
+  reorderKids(row, function (k) { return k.getAttribute("data-cat") || ""; }, order);
+  if (row) [].forEach.call(row.children, function (k) {
+    var c = byN[k.getAttribute("data-cat")]; if (!c) return;
+    var b = k.querySelector(".u-co");
+    if (c.disc && !b) { var s = document.createElement("span"); s.className = "u-co"; s.textContent = "50% OFF"; k.appendChild(s); }
+    if (!c.disc && b) b.remove();
+  });
+}
+function loadCats() {
+  fetch(CURL, { headers: { apikey: KEY, Authorization: "Bearer " + KEY } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (rows) {
+      if (!Array.isArray(rows)) return;
+      try { localStorage.setItem(CCK, JSON.stringify(rows)); } catch (e) {}
+      applyCats(rows); try { render(); } catch (e) {}
+    }).catch(function () {});
+}
+
 /* 1. turant: pichhli visit ka cache */
 try { var c = JSON.parse(localStorage.getItem(CK) || "null"); if (c && c.rows) merge(c.rows); } catch (e) {}
+try { var cc = JSON.parse(localStorage.getItem(CCK) || "null"); if (cc) applyCats(cc); } catch (e) {}
 if (document.readyState !== "loading") sweep(); else document.addEventListener("DOMContentLoaded", sweep);
 
 /* 2. peeche se: taaza data */
@@ -154,8 +219,12 @@ function load() {
       if (!Array.isArray(rows)) return;
       try { localStorage.setItem(CK, JSON.stringify({ t: Date.now(), rows: rows })); } catch (e) {}
       if (merge(rows)) { try { render(); } catch (e) {} }
+      if (CROWS) applyCats(CROWS);
       sweep();
     }).catch(function () {});
 }
 load();
+loadCats();
+/* ui.js ki home row baad me banti hai — tab bhi kram/badge lagao */
+try { var _cw = 0, _ct = setInterval(function () { if (CROWS && document.querySelector("#uCatsRow .u-crow")) { applyCats(CROWS); clearInterval(_ct); } if (++_cw > 20) clearInterval(_ct); }, 500); } catch (e) {}
 })();
