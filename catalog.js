@@ -1,4 +1,4 @@
-/* AADHAYA — Catalogue → Database  (v2: DB photo + 2nd photo + auto NEW)
+/* AADHAYA — Catalogue → Database  (v3: DB photo + 2nd photo + auto NEW + ?item=CODE link)
    Accounting app (Supabase) me jo product "show in app" hai aur jiska catalogue data
    (finishes / sizes / rates) bhara hai, woh yahan se order app me apne aap aa jaata hai.
    - index.html ki list (P[]) me jo product pehle se hai use yeh CHHEDTA NAHI — sirf naye add karta hai.
@@ -120,7 +120,21 @@ function gallery() {
   box.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; }, { passive: true });
   box.addEventListener("touchend", function (e) { if (x0 === null) return; var d = e.changedTouches[0].clientX - x0; if (Math.abs(d) > 40) show(k + (d < 0 ? 1 : -1)); x0 = null; });
 }
-function sweep() { swapImgs(document.body); gallery(); }
+function sweep() { swapImgs(document.body); gallery(); deep(); }
+/* 5. Seedha product link: order.aadhayahardware.com/?item=CODE */
+var DEEP = null, deepDone = false;
+try { DEEP = (new URLSearchParams(location.search).get("item") || "").trim().toUpperCase() || null; } catch (e) {}
+function deep() {
+  if (!DEEP || deepDone) return;
+  var p = null; for (var i = 0; i < P.length; i++) if (String(P[i].code).toUpperCase() === DEEP) { p = P[i]; break; }
+  if (!p) return;
+  deepDone = true;
+  setTimeout(function () {
+    try { enterApp(p.category); } catch (e) {}
+    try { openSheet(p.code); } catch (e) {}
+  }, 300);
+}
+
 try {
   new MutationObserver(function (ms) {
     ms.forEach(function (m) { [].forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) swapImgs(n); }); });
