@@ -1,4 +1,4 @@
-/* AADHAYA — Catalogue → Database  (v1)
+/* AADHAYA — Catalogue → Database  (v2: DB photo + 2nd photo + auto NEW)
    Accounting app (Supabase) me jo product "show in app" hai aur jiska catalogue data
    (finishes / sizes / rates) bhara hai, woh yahan se order app me apne aap aa jaata hai.
    - index.html ki list (P[]) me jo product pehle se hai use yeh CHHEDTA NAHI — sirf naye add karta hai.
@@ -11,10 +11,11 @@
 if (typeof P === "undefined" || typeof CATS === "undefined") return;
 
 var URL = "https://rtgfbovemrxfsiflwmvp.supabase.co/rest/v1/v_public_catalog" +
-  "?select=code,name,category,series,material,finishes,sizes,priceRows,priceNote,description,bestseller,isNew,featured" +
+  "?select=code,name,category,series,material,finishes,sizes,priceRows,priceNote,description,bestseller,isNew,featured,image_url,image2_url" +
   "&finishes=neq.%5B%5D&order=sort_order.asc";
 var KEY = "sb_publishable_BjpMZA25KLEHoDiX1FYZmA_W_7XBwjN";
-var CK = "aad_dbcat_v1";
+var CK = "aad_dbcat_v2";
+var PH = {}, PH2 = {}; /* code -> uploaded photo URL (accounting app se) */
 
 /* Nayi category ki tagline + 50% OFF wali categories */
 var TAGLINE = { "Knobs": "Zinc Alloy Designer Knobs" };
@@ -25,13 +26,16 @@ function has(code) { for (var i = 0; i < P.length; i++) if (P[i].code === code) 
 function hasCat(n) { for (var i = 0; i < CATS.length; i++) if (CATS[i].name === n) return true; return false; }
 function arr(v) { return Array.isArray(v) ? v : []; }
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-function imgOf(code) { try { return IMG[code]; } catch (e) { return code + ".jpg"; } }
+function imgOf(code) { if (PH[code]) return PH[code]; try { return IMG[code]; } catch (e) { return code + ".jpg"; } }
 function isOff(n) { try { return DISC_CATS.indexOf(n) > -1; } catch (e) { return false; } }
 
 function merge(rows) {
   var newCats = [], added = 0;
   (rows || []).forEach(function (r) {
-    if (!r || !r.code || !r.category || has(r.code)) return;
+    if (!r || !r.code) return;
+    if (r.image_url && r.image_url.indexOf("supabase.co") > -1) PH[r.code] = r.image_url;
+    if (r.image2_url) PH2[r.code] = r.image2_url;
+    if (!r.category || has(r.code)) { if (r.isNew) P.forEach(function (p) { if (p.code === r.code) p.isNew = true; }); return; }
     P.push({
       code: r.code, name: r.name || r.code, category: r.category,
       series: r.series || "", material: r.material || "",
@@ -87,8 +91,46 @@ function addCatUI(name) {
   }
 }
 
+
+/* 3. Uploaded photo: index.html ki IMG list badle bina, page ki <img> me CODE.jpg ki jagah DB photo */
+function fname(u) { try { return decodeURIComponent(String(u).split("?")[0].split("/").pop()); } catch (e) { return ""; } }
+function swapImgs(root) {
+  if (!root || !root.querySelectorAll) return;
+  var list = root.tagName === "IMG" ? [root] : root.querySelectorAll("img");
+  [].forEach.call(list, function (im) {
+    var f = fname(im.getAttribute("src") || ""); if (!/\.jpg$/i.test(f)) return;
+    var code = f.replace(/\.jpg$/i, ""); if (PH[code] && im.src !== PH[code]) im.src = PH[code];
+  });
+}
+/* 4. Product sheet me 2nd photo: tap / swipe se badle */
+function gallery() {
+  var box = document.querySelector("#shBody .sh-img"); if (!box || box.getAttribute("data-g")) return;
+  var code = (document.getElementById("shCode") || {}).textContent || ""; var u2 = PH2[code];
+  if (!u2) return;
+  var im = box.querySelector("img"); if (!im) return;
+  var pics = [PH[code] || im.getAttribute("src"), u2], k = 0;
+  box.setAttribute("data-g", "1"); box.style.position = "relative";
+  var dots = document.createElement("div");
+  dots.style.cssText = "position:absolute;left:0;right:0;bottom:10px;display:flex;gap:6px;justify-content:center;pointer-events:none";
+  function show(n) { k = (n + 2) % 2; im.src = pics[k];
+    dots.innerHTML = pics.map(function (_, i) { return '<span style="width:7px;height:7px;border-radius:50%;background:' + (i === k ? "#C8A84A" : "rgba(0,0,0,.25)") + '"></span>'; }).join(""); }
+  box.appendChild(dots); show(0);
+  box.addEventListener("click", function () { show(k + 1); });
+  var x0 = null;
+  box.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+  box.addEventListener("touchend", function (e) { if (x0 === null) return; var d = e.changedTouches[0].clientX - x0; if (Math.abs(d) > 40) show(k + (d < 0 ? 1 : -1)); x0 = null; });
+}
+function sweep() { swapImgs(document.body); gallery(); }
+try {
+  new MutationObserver(function (ms) {
+    ms.forEach(function (m) { [].forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) swapImgs(n); }); });
+    gallery();
+  }).observe(document.documentElement, { childList: true, subtree: true });
+} catch (e) {}
+
 /* 1. turant: pichhli visit ka cache */
 try { var c = JSON.parse(localStorage.getItem(CK) || "null"); if (c && c.rows) merge(c.rows); } catch (e) {}
+if (document.readyState !== "loading") sweep(); else document.addEventListener("DOMContentLoaded", sweep);
 
 /* 2. peeche se: taaza data */
 function load() {
@@ -98,6 +140,7 @@ function load() {
       if (!Array.isArray(rows)) return;
       try { localStorage.setItem(CK, JSON.stringify({ t: Date.now(), rows: rows })); } catch (e) {}
       if (merge(rows)) { try { render(); } catch (e) {} }
+      sweep();
     }).catch(function () {});
 }
 load();
