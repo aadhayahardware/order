@@ -18,8 +18,8 @@ var CK = "aad_dbcat_v2";
 var PH = {}, PH2 = {}; /* code -> uploaded photo URL (accounting app se) */
 
 /* Nayi category ki tagline + 50% OFF wali categories */
-var TAGLINE = { "Knobs": "Zinc Alloy Designer Knobs" };
-var DISC_ADD = ["Knobs"];
+var TAGLINE = { "Knobs": "Zinc Alloy Designer Knobs", "Door Stoppers": "Premium Door Stoppers" };
+var DISC_ADD = ["Knobs", "Door Stoppers"];
 try { DISC_ADD.forEach(function (c) { if (DISC_CATS.indexOf(c) < 0) DISC_CATS.push(c); }); } catch (e) {}
 
 function has(code) { for (var i = 0; i < P.length; i++) if (P[i].code === code) return true; return false; }
