@@ -31,26 +31,30 @@ function load() {
   step();
 }
 
+/* finish.js naya finish/size jodta hai — purani lines ka hisaab hamesha index.html ki asli list (_baseFin/_baseSz) se */
+function fl(p) { return p._baseFin || p.finishes || []; }
+function sl(p) { return p._baseSz || p.sizes || []; }
+
 function meta(p, row) {
-  var hasS = !!(p.sizes && p.sizes.length);
+  var szs = sl(p), hasS = !!(szs && szs.length);
   var i = row.label.indexOf(SEP);
   var size, all = false;
   if (!hasS) { size = "-"; }
   else if (i >= 0) { size = row.label.slice(0, i).trim(); }
   else { size = row.label.trim(); all = true; }
-  var ok = !hasS || p.sizes.indexOf(size) >= 0;
+  var ok = !hasS || szs.indexOf(size) >= 0;
   return { size: size, all: all, ok: ok };
 }
 
 function rowPrice(p, row) {
   var m = RATE[p.code]; if (!m) return null;
   var d = meta(p, row); if (!d.ok) return null;
-  var fins;
-  if (d.all) { fins = (p.finishes || []).slice(); }
+  var fins, F = fl(p);
+  if (d.all) { fins = F.slice(); }
   else {
-    fins = (p.finishes || []).filter(function (f) { try { return rowMatchesFin(row.label, f); } catch (e) { return false; } });
-    if (!fins.length) fins = (p.finishes || []).filter(function (f) { return row.label.trim() === f; });
-    if (!fins.length && !(p.sizes && p.sizes.length)) fins = (p.finishes || []).slice();
+    fins = F.filter(function (f) { try { return rowMatchesFin(row.label, f); } catch (e) { return false; } });
+    if (!fins.length) fins = F.filter(function (f) { return row.label.trim() === f; });
+    if (!fins.length && !sl(p).length) fins = F.slice();
   }
   if (!fins.length) return null;
   var vals = [];
@@ -69,6 +73,7 @@ function apply() {
       if (enq) continue;
       for (var j = 0; j < p.priceRows.length; j++) {
         var row = p.priceRows[j];
+        if (row._db) continue; /* finish.js ki line — rate woh khud laata hai */
         var np = rowPrice(p, row);
         if (np === null) continue;
         if (np !== row.price) { row.price = np; changed = true; }
