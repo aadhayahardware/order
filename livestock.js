@@ -180,6 +180,7 @@ function Card(tr, dotsBox) {
     F.ix.innerHTML = "<b>" + pad(list.indexOf(c) + 1) + "</b> / " + pad(list.length);
     F.s.innerHTML = "<b>" + stText(c) + "</b><span>· " + c.ready + " of " + c.items + " products</span>";
     setImg(c.code);
+    try { var sm = F.qw.querySelector("small"), ut = (typeof SET_CATS !== "undefined" && SET_CATS.indexOf(c.name) > -1) ? "sets available" : "pcs available"; if (sm && sm.textContent !== ut) sm.textContent = ut; } catch (e) {}
     num(F.q, c.avail, count ? (F.q.__v || 0) : null, delay);
   }
   function fillBack(c, count, delay) {

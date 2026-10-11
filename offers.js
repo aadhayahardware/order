@@ -86,7 +86,7 @@ function make(where) {
         '<div class="ols-s">ऑर्डर से पहले, कितना माल तैयार</div><span class="ols-b">स्टॉक देखें →</span></div>' +
         '<div class="ols-r"><div class="ols-box"><div class="ols-n"><span data-d="pcs">—</span><small>pcs</small></div>' +
         '<div class="ols-t"><i></i><span data-d="ago">In stock</span></div></div>' +
-        '<div class="ols-m"><b data-d="prod">—</b> products · हर मिनट update</div></div>' +
+        '<div class="ols-m"><b data-d="sets"></b><b data-d="prod">—</b> products · हर मिनट update</div></div>' +
       '</div></div>' +
     '</div><div class="ofs-dots"><i class="on"></i><i></i></div>';
 
@@ -148,7 +148,7 @@ function paint() {
       var q = el.querySelectorAll("[data-d]");
       for (var j = 0; j < q.length; j++) {
         var k = q[j].getAttribute("data-d");
-        var tx = k === "ago" ? agoText() : D ? fmt(k === "pcs" ? D.pcs : D.prod) : "—";
+        var tx = k === "ago" ? agoText() : k === "sets" ? (D && D.sets ? "+ " + fmt(D.sets) + " sets · " : "") : D ? fmt(k === "pcs" ? D.pcs : D.prod) : "—";
         if (q[j].textContent !== tx) q[j].textContent = tx;
       }
     }
@@ -158,14 +158,15 @@ function paint() {
 function load() {
   var rows = [], off = 0;
   function done() {
-    var seen = {}, prod = 0, pcs = 0;
+    var seen = {}, prod = 0, pcs = 0, sets = 0;
     rows.forEach(function (r) {
       var q = Number(r.qty) || 0;
       if (q <= 0) return;
       if (!seen[r.app_code]) { seen[r.app_code] = 1; prod++; }
-      pcs += q;
+      var isSet = false; try { isSet = unitOf(r.app_code) === "set"; } catch (e) {}
+      if (isSet) sets += q; else pcs += q;
     });
-    D = { prod: prod, pcs: Math.round(pcs) }; stamp = Date.now(); paint();
+    D = { prod: prod, pcs: Math.round(pcs), sets: Math.round(sets) }; stamp = Date.now(); paint();
   }
   function step() {
     fetch(BASE, { headers: { apikey: KEY, Authorization: "Bearer " + KEY, Range: off + "-" + (off + 999) } })

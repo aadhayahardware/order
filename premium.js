@@ -142,7 +142,7 @@ function countUp() {
   var box = document.getElementById("uStk"); if (!box || box.className.indexOf("u-ok") < 0) return;
   var k = box.getAttribute("data-k") || ""; if (k === lastKey) return; lastKey = k;
   var sp = box.querySelector(".u-sk1 span"); if (!sp) return;
-  var m = sp.textContent.match(/^(.*?)(\d+)(\s*pcs?.*)$/i); if (!m) return;
+  var m = sp.textContent.match(/^(.*?)(\d+)(\s*(?:pcs?|sets?).*)$/i); if (!m) return;
   var n = parseInt(m[2], 10), pre = m[1], post = m[3];
   sweep(box);
   if (n <= 0) return;

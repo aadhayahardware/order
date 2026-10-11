@@ -485,7 +485,7 @@ function qPick(code) {
   var rows = sizes.map(function (s) {
     var pr = fins.map(function (f) { return priceFor(p, s, f).u; }).filter(function (v) { return v > 0; });
     var mn = pr.length ? Math.min.apply(null, pr) : 0, mx = pr.length ? Math.max.apply(null, pr) : 0;
-    var hint = !pr.length ? 'on enquiry' : mn === mx ? rs(mn) + '/pc' : rs(mn) + '–' + rs(mx);
+    var hint = !pr.length ? 'on enquiry' : mn === mx ? rs(mn) + (unitOf(code) === 'set' ? '/set' : '/pc') : rs(mn) + '–' + rs(mx);
     return '<tr><td>' + esc(s || 'Qty') + '<small>' + hint + '</small></td>' + fins.map(function (f) {
       return '<td><input type="number" inputmode="numeric" min="0" step="1" placeholder="0" data-s="' + esc(s == null ? '' : s) + '" data-f="' + esc(f == null ? '' : f) + '" aria-label="' + esc((s || '') + ' ' + (f || '') + ' quantity') + '"></td>';
     }).join('') + '</tr>';
@@ -494,7 +494,7 @@ function qPick(code) {
   card.innerHTML = '<div class="u-qph"><img alt="" src="' + img(code) + '"><div class="u-qt"><div class="u-q1">' + esc(p.name) + '</div><div class="u-q2">' + esc(code) + ' · ' + esc(p.category) + (hasDisc(p) ? ' · <b style="color:var(--u-green)">50% off applied</b>' : '') + '</div></div>' +
     '<button type="button" class="u-qx" data-rm="' + esc(code) + '" aria-label="Remove">' + ic('x') + '</button></div>' +
     '<div class="u-mx"><table><thead><tr>' + th + '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
-    '<div class="u-qfoot"><span class="u-qline">0 pcs</span><b class="u-qval">' + rs(0) + '</b></div>';
+    '<div class="u-qfoot"><span class="u-qline">' + unitTxt(0, code) + '</span><b class="u-qval">' + rs(0) + '</b></div>';
   $('#uqProds').insertBefore(card, $('#uqProds').firstChild);
   if (!$('#uqLeg')) { var lg = document.createElement('div'); lg.className = 'u-leg'; lg.id = 'uqLeg'; lg.innerHTML = '<span><i class="s"></i>In stock now</span><span><i class="h"></i>Quantity entered</span>'; $('#uqProds').parentNode.insertBefore(lg, $('#uqProds')); }
   var inp = $('#uqIn'); if (inp) inp.value = '';
@@ -506,7 +506,7 @@ function paintQuick() {
     var code = card.getAttribute('data-code');
     $$('input', card).forEach(function (i) {
       var n = stockOf(code, i.getAttribute('data-s') || null, i.getAttribute('data-f') || null);
-      i.classList.toggle('stk', n > 0); i.title = n > 0 ? 'In stock: ' + n + ' pcs' : '';
+      i.classList.toggle('stk', n > 0); i.title = n > 0 ? 'In stock: ' + unitTxt(n, code) : '';
     });
   });
 }
@@ -526,13 +526,13 @@ function qTotals() {
   var L = qLines(), pcs = 0, amt = 0, enq = 0;
   $$('#uqProds .u-qp').forEach(function (card) {
     var cp = 0, cv = 0; L.forEach(function (l) { if (l.card === card) { cp += l.qty; cv += l.u * l.qty; } });
-    $('.u-qline', card).textContent = cp + ' pcs'; $('.u-qval', card).textContent = rs(cv);
+    $('.u-qline', card).textContent = unitTxt(cp, card.getAttribute('data-code')); $('.u-qval', card).textContent = rs(cv);
   });
   L.forEach(function (l) { pcs += l.qty; amt += l.u * l.qty; if (!l.u) enq++; });
-  $('#uqPcs').textContent = pcs + ' pcs selected';
+  $('#uqPcs').textContent = (pcs ? mixOf(L) : '0 pcs') + ' selected';
   $('#uqAmt').textContent = pcs ? rs(amt) + (enq ? ' + items on enquiry' : '') + ' · excl. GST' : 'Enter quantities above';
   $('#uqAdd').disabled = !pcs;
-  $('#uqAdd').textContent = pcs ? 'Add ' + pcs + ' pcs to Order' : 'Add to Order';
+  $('#uqAdd').textContent = pcs ? 'Add ' + mixOf(L) + ' to Order' : 'Add to Order';
 }
 function qAdd() {
   var L = qLines(); if (!L.length) return;
@@ -547,7 +547,7 @@ function qAdd() {
   try { track('add_to_cart', { currency: 'INR', value: val, items: L.map(function (l) { return { item_id: l.p.code, item_name: l.p.name, item_category: l.p.category, quantity: l.qty, price: l.u || 0 }; }) }); } catch (e) {}
   QP = []; $('#uqProds').innerHTML = ''; var lg = $('#uqLeg'); if (lg) lg.parentNode.removeChild(lg); qTotals();
   closeAll(); openCart();
-  toast('Added ' + pcs + ' pcs to your order');
+  toast('Added ' + mixOf(L) + ' to your order');
 }
 
 /* ---------- 10. my orders + tracking ---------- */
@@ -571,13 +571,13 @@ function thumbs(items) {
   if (!items || !items.length) return '';
   var codes = [], pcs = 0; items.forEach(function (it) { pcs += Number(it.qty) || 0; if (codes.indexOf(it.code) < 0) codes.push(it.code); });
   return '<div class="u-othumbs">' + codes.slice(0, 5).map(function (c) { return '<img loading="lazy" alt="" src="' + img(c) + '">'; }).join('') +
-    '<span>' + (codes.length > 5 ? '+' + (codes.length - 5) + ' more · ' : '') + pcs + ' pcs</span></div>';
+    '<span>' + (codes.length > 5 ? '+' + (codes.length - 5) + ' more · ' : '') + mixOf(items) + '</span></div>';
 }
 function ordCard(o) {
   var wa = o.no ? '<a class="u-g" target="_blank" rel="noopener" href="https://wa.me/' + BOT + '?text=' + encodeURIComponent('STATUS ' + o.no) + '">' + ic('wa') + 'Track on WhatsApp</a>' : '';
   var re = o.li != null ? '<button type="button" data-re="' + o.li + '">' + ic('refresh') + 'Reorder</button>'
          : o.no ? '<button type="button" data-rs="' + esc(o.no) + '">' + ic('refresh') + 'Reorder</button>' : '';
-  return '<div class="u-ord"><div class="u-ordh"><div><div class="u-on">' + esc(o.no || 'WhatsApp order') + '</div><div class="u-od">' + fmtD(o.d) + (o.pcs ? ' · ' + o.pcs + ' pcs' : '') + '</div>' +
+  return '<div class="u-ord"><div class="u-ordh"><div><div class="u-on">' + esc(o.no || 'WhatsApp order') + '</div><div class="u-od">' + fmtD(o.d) + (o.items && o.items.length ? ' · ' + mixOf(o.items) : o.pcs ? ' · ' + o.pcs + ' pcs' : '') + '</div>' +
     '<span class="u-st ' + o.st + '">' + STL[o.st] + '</span></div><div class="u-ov">' + (o.v ? rs(Math.round(o.v)) : '') + '</div></div>' +
     stepsHtml(o.st) + thumbs(o.items) + '<div class="u-oact">' + re + wa + '</div></div>';
 }
@@ -640,7 +640,9 @@ function ordClick(e) {
 
 /* ---------- 11. big live-stock alerts (product page, options, cards, filter) ---------- */
 var LOW = 10, stkPop = '';
-function pcs(n) { return n + (n === 1 ? ' pc' : ' pcs'); }
+function unitTxt(n, c) { try { return uq(n, c); } catch (e) { return n + ' pcs'; } }
+function pcs(n, c) { if (c) { try { return uq(n, c); } catch (e) {} } return n + (n === 1 ? ' pc' : ' pcs'); }
+function mixOf(L) { try { return uqMix(L.map(function (l) { return { code: l.p ? l.p.code : l.code, qty: l.qty }; })); } catch (e) { var t = 0; L.forEach(function (l) { t += Number(l.qty) || 0; }); return pcs(t); } }
 function stkTot(code) { var m = (QSTK || {})[code]; if (!m) return 0; var t = 0; for (var k in m) t += m[k]; return t; }
 function stkList(code) {
   var m = (QSTK || {})[code] || {}, out = [];
@@ -658,7 +660,7 @@ function paintCardsStk() {
     pc.classList.toggle('u-hasstk', n > 0);
     if (!n) { if (b) b.parentNode.removeChild(b); return; }
     if (!b) { b = document.createElement('span'); im.appendChild(b); }
-    var cls = 'u-sb' + (n <= LOW ? ' low' : ''), tx = pcs(n).toUpperCase();
+    var cls = 'u-sb' + (n <= LOW ? ' low' : ''), tx = pcs(n, m[1]).toUpperCase();
     if (b.className !== cls) b.className = cls; if (b.textContent !== tx) b.textContent = tx;
   });
 }
@@ -681,13 +683,13 @@ function paintPdpStk() {
   var q = stockOf(code, selSize, selFin), v = [selSize, selFin].filter(Boolean).join(' / ');
   var key = code + '|' + v + '|' + q + '|' + tot;
   var cls = 'u-ok' + (q <= LOW ? ' low' : '');
-  var h = '<div class="u-sk1">' + ic(q > LOW ? 'check' : 'box') + '<span>Live stock: ' + pcs(q) + '</span></div>' +
+  var h = '<div class="u-sk1">' + ic(q > LOW ? 'check' : 'box') + '<span>Live stock: ' + pcs(q, code) + '</span></div>' +
           '<div class="u-sk2">' + (v ? esc(v) + ' · ' : '') + (q > 0 ? 'ready in godown' : 'abhi godown me nahi') + ' · updated live</div>';
   if (q <= 0 && tot > 0) {
     h += '<div class="u-sk4">Stock available in:</div><div class="u-skc">' +
          L.slice(0, 8).map(function (x) {
            var lab = [x.s !== '-' ? x.s : '', x.f !== '-' ? x.f : ''].filter(Boolean).join(' / ') || 'Standard';
-           return '<button type="button" data-s="' + esc(x.s) + '" data-f="' + esc(x.f) + '">' + esc(lab) + ' · <b>' + pcs(x.q) + '</b></button>';
+           return '<button type="button" data-s="' + esc(x.s) + '" data-f="' + esc(x.f) + '">' + esc(lab) + ' · <b>' + pcs(x.q, code) + '</b></button>';
          }).join('') + '</div>';
   }
   if (el.getAttribute('data-k') !== key) {

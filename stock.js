@@ -64,8 +64,9 @@ function load() {
   step();
 }
 
-function label(n) {
-  return n <= LOW ? ("Only " + n + " pcs left") : ("In stock \u00b7 " + n + " pcs");
+function U(n, c) { try { return uq(n, c); } catch (e) { return n + " pcs"; } }
+function label(n, c) {
+  return n <= LOW ? ("Only " + U(n, c) + " left") : ("In stock \u00b7 " + U(n, c));
 }
 
 function paintCards() {
@@ -82,7 +83,7 @@ function paintCards() {
     if (!n) { if (el && el.parentNode) el.parentNode.removeChild(el); continue; }
     if (!el) { el = document.createElement("div"); bd.appendChild(el); }
     var cls = "stk-line" + (n <= LOW ? " low" : "");
-    var tx  = label(n);
+    var tx  = label(n, m[1]);
     if (el.className !== cls) el.className = cls;
     if (el.textContent !== tx) el.textContent = tx;
   }
@@ -132,7 +133,7 @@ function paintSheet() {
   if (q === undefined) q = map[sz + "||-"];
   if (!q) { if (el.className !== "none") el.className = "none"; return; }
   var cls = q <= LOW ? "low" : "";
-  var tx  = label(q) + " \u2014 " + (sz === "-" ? "" : sz + " / ") + fn;
+  var tx  = label(q, c) + " \u2014 " + (sz === "-" ? "" : sz + " / ") + fn;
   if (el.className !== cls) el.className = cls;
   if (el.textContent !== tx) el.textContent = tx;
 }
