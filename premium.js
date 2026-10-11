@@ -31,10 +31,6 @@ var css =
 /* 2. reveal */
 ".pm-rv{opacity:0;translate:0 26px}" +
 ".pm-rv.pm-in{opacity:1;translate:0 0;transition:opacity .75s cubic-bezier(.2,.7,.2,1) var(--pm-d,0ms),translate .95s cubic-bezier(.16,.84,.24,1) var(--pm-d,0ms)}" +
-".sec.pm-rv h2{clip-path:inset(0 100% 0 0)}" +
-".sec.pm-rv.pm-in h2{clip-path:inset(0 0 0 0);transition:clip-path 1s cubic-bezier(.7,0,.2,1) calc(var(--pm-d,0ms) + 80ms)}" +
-".sec.pm-rv h2:after{content:'';display:block;height:2px;width:0;margin-top:6px;border-radius:2px;background:linear-gradient(90deg,var(--u-gold,#C8A84A),rgba(200,168,74,0))}" +
-".sec.pm-rv.pm-in h2:after{width:56px;transition:width .9s cubic-bezier(.2,.7,.2,1) calc(var(--pm-d,0ms) + 450ms)}" +
 
 /* 3 + 4. light sweep (stock box + sheet photo) */
 ".pm-sw{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:2}" +

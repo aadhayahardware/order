@@ -158,7 +158,8 @@ function hero() {
     '<div class="u-hcard"><div class="u-hl">' +
       '<div class="u-eyebrow">Dealer Order Catalogue · 2026</div>' +
       '<h1>Premium SS hardware,<br><em>factory-direct.</em></h1>' +
-      '<p>Live stock, dealer NETT pricing and one-tap WhatsApp ordering — trusted by 700+ dealers across India since 2012.</p>' +
+      '<p class="u-pf">Live stock, dealer NETT pricing and one-tap WhatsApp ordering — trusted by 700+ dealers across India since 2012.</p>' +
+      '<p class="u-pm">Trusted by 700+ dealers · since 2012</p>' +
       '<div class="u-live" role="button" tabindex="0" id="uLive"><span class="u-dot"></span><span id="uLiveTx">Live stock · updated every minute</span><span class="u-lvp">View</span></div>' +
       '<div class="u-hbtns"><button type="button" class="u-btn gold" data-u="quick">' + ic('bolt') + 'Quick Order</button>' +
       '<button type="button" class="u-btn ghost" data-u="browse">Browse catalogue</button></div>' +
@@ -706,6 +707,25 @@ function stkPick(e) {
   paintPdpStk();
 }
 
+/* ---------- 12. compact header on scroll (phones) ---------- */
+function hdScroll() {
+  var hd = $('header'), sr = $('header .search'); if (!hd || !sr) return;
+  var last = window.pageYOffset, on = false, tick = false;
+  var wide = function () { return window.matchMedia && window.matchMedia('(min-width:900px)').matches; };
+  var setOff = function () { document.documentElement.style.setProperty('--u-hdoff', Math.max(0, sr.offsetTop - 8) + 'px'); };
+  var set = function (v) { if (v !== on) { on = v; document.body.classList.toggle('u-hdmin', v); } };
+  setOff(); window.addEventListener('resize', setOff);
+  window.addEventListener('scroll', function () {
+    if (tick) return; tick = true;
+    requestAnimationFrame(function () {
+      tick = false;
+      var y = window.pageYOffset, d = y - last;
+      if (wide() || y < 140 || hd.contains(document.activeElement)) { set(false); last = y; return; }
+      if (d > 6) { set(true); last = y; } else if (d < -6) { set(false); last = y; }
+    });
+  }, { passive: true });
+}
+
 /* ---------- boot ---------- */
 function start() {
   if (typeof P === 'undefined' || !document.getElementById('content')) return;
@@ -716,6 +736,7 @@ function start() {
   try { pdpSetup(); } catch (e) {}
   try { infoSetup(); } catch (e) {}
   try { tabbar(); } catch (e) {}
+  try { hdScroll(); } catch (e) {}
   enhanceContent();
   refreshStock(); setInterval(refreshStock, 60000);
   var c = $('#content'), hw = $('#heroWrap');

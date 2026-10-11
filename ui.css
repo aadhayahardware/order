@@ -536,3 +536,29 @@ html .stk-line{display:none!important}
 #uStk .u-sk4{font-size:13px;font-weight:700;margin-top:12px;color:var(--u-ink)}
 #uStk.low .u-skc button{border-color:#86D3A5;color:#0B7A36}
 #uStk .u-sk1{font-size:clamp(19px,5.6vw,26px);white-space:nowrap}
+/* v3 — mobile clean pass (minimal, white). Delete this block to undo. */
+/* E: price line — strikethrough already shows the discount */
+.pc .pr em{display:none}
+/* F: lighter overlays on the product photo */
+.pc .imw{border-bottom:0!important}
+.favb{width:32px!important;height:32px!important;top:6px!important;right:6px!important;background:transparent!important;border:0!important;box-shadow:none!important;color:#8E8E89!important;font-size:19px!important;text-shadow:0 0 2px #fff,0 0 4px rgba(255,255,255,.85)}
+.favb.on{color:#E0245E!important}
+.qab{width:31px!important;height:31px!important;font-size:19px!important;bottom:9px!important;right:9px!important;box-shadow:0 4px 10px -4px rgba(17,17,17,.45)!important}
+/* H: Quick Order label on the same line as the other tab labels */
+.u-tab.u-mid .u-mi{margin-top:-21px}
+/* D: header slides its logo row away while scrolling down (search stays) */
+header{transition:transform .28s cubic-bezier(.2,.7,.2,1)}
+body.u-hdmin header{transform:translateY(calc(-1 * var(--u-hdoff,0px)))}
+.u-hero .u-pm{display:none}
+@media(max-width:560px){
+ /* B: trust strip already said in the hero */
+ .trust{display:none!important}
+ /* C: compact hero — one short line instead of the paragraph */
+ .u-hero .u-pf{display:none}
+ .u-hero .u-pm{display:block;margin-top:6px}
+ .u-hcard h1{font-size:26px}
+ .u-live{margin-top:10px}
+ .u-hbtns{margin-top:12px}
+ .u-cats{margin-top:16px}
+}
+@media(min-width:900px){body.u-hdmin header{transform:none}}
