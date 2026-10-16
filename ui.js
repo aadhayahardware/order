@@ -155,21 +155,20 @@ function hero() {
   var picks = heroPicks();
   var el = document.createElement('section'); el.className = 'u-hero';
   el.innerHTML =
-    '<div class="u-hcard"><div class="u-hl">' +
-      '<div class="u-eyebrow">Dealer Order Catalogue · 2026</div>' +
-      '<h1>Premium SS hardware,<br><em>factory-direct.</em></h1>' +
-      '<p>Live stock, dealer NETT pricing and one-tap WhatsApp ordering — trusted by 700+ dealers across India since 2012.</p>' +
-      '<div class="u-live" role="button" tabindex="0" id="uLive"><span class="u-dot"></span><span id="uLiveTx">Live stock · updated every minute</span><span class="u-lvp">View</span></div>' +
-      '<div class="u-hbtns"><button type="button" class="u-btn gold" data-u="quick">' + ic('bolt') + 'Quick Order</button>' +
-      '<button type="button" class="u-btn ghost" data-u="browse">Browse catalogue</button></div>' +
-      '<div class="u-hstats"><div><b>' + n + '+</b><span>Products</span></div><div><b>' + CATS.length + '</b><span>Categories</span></div><div><b>48hr</b><span>Dispatch</span></div><div><b>700+</b><span>Dealers</span></div></div>' +
-    '</div><div class="u-hvis">' + picks.map(function (p) { return '<div data-code="' + esc(p.code) + '"><img alt="' + esc(p.name) + '" src="' + img(p.code) + '"></div>'; }).join('') + '</div></div>' +
+    '<div class="u-lv" id="uLive" role="button" tabindex="0" aria-label="Live stock, tap to refresh">' +
+      '<div class="u-lvtop"><span class="u-lvdot"><i></i></span><span class="u-lvtag">Live stock</span><span class="u-lvsub">updates every minute</span>' +
+        '<span class="u-lvring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.5"/><circle class="fg" id="uLvArc" cx="18" cy="18" r="15.5"/></svg><b id="uLvSec">60</b></span></div>' +
+      '<div class="u-lvnums"><div><b id="uLvPcs">&mdash;</b><span>pcs ready</span></div>' +
+        '<div id="uLvSetsW"><b id="uLvSets">&mdash;</b><span>sets ready</span></div>' +
+        '<div><b id="uLvProd">&mdash;</b><span>products in stock</span></div></div>' +
+      '<div class="u-lvfoot"><span id="uLvAgo">Connecting to godown&hellip;</span><span class="u-lvtap">' + ic('refresh') + 'Tap to refresh</span></div>' +
+    '</div>' +
     '<div class="u-cats" id="uCatsRow"><div class="u-sh"><h3>Shop by category</h3><button type="button" class="u-all" data-u="cats">View all' + ic('arrow') + '</button></div>' +
     '<div class="u-crow">' + catTiles() + '</div></div>';
   c.parentNode.insertBefore(el, c);
   el.addEventListener('click', function (e) {
     var t = e.target.closest('[data-u],[data-cat],[data-code],#uLive'); if (!t) return;
-    if (t.id === 'uLive') { var pi = $('.lsb[data-where="app"] img'); if (pi) pi.click(); return; }
+    if (t.id === 'uLive') { liveRefresh(); return; }
     if (t.hasAttribute('data-cat')) return selectCat(t.getAttribute('data-cat'));
     if (t.hasAttribute('data-code')) return openSheet(t.getAttribute('data-code'));
     var u = t.getAttribute('data-u');
@@ -177,17 +176,60 @@ function hero() {
     else if (u === 'cats') openCats();
     else if (u === 'browse') { var s = $('#content .sec'); if (s) window.scrollTo({ top: s.getBoundingClientRect().top + window.pageYOffset - 130, behavior: 'smooth' }); }
   });
-  liveTick(); setInterval(liveTick, 3000);
+  var lv = $('#uLive');
+  if (lv) lv.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); liveRefresh(); } });
+  paintLive(); liveTick(); setInterval(liveTick, 1000);
+}
+var LV = { pcs: null, sets: null, prod: null, busy: false };
+function lvFmt(n) { try { return Number(n).toLocaleString('en-IN'); } catch (e) { return String(n); } }
+function lvCount(el, to) {
+  if (!el) return;
+  var from = el.__v == null ? 0 : el.__v; el.__v = to;
+  if (from === to && el.textContent !== '—') return;
+  if (el.__raf) cancelAnimationFrame(el.__raf);
+  var rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (rm || !window.requestAnimationFrame) { el.textContent = lvFmt(to); return; }
+  var t0 = 0, dur = 1100;
+  (function step(t) {
+    if (!t0) t0 = t;
+    var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 4);
+    el.textContent = lvFmt(Math.round(from + (to - from) * e));
+    if (k < 1) el.__raf = requestAnimationFrame(step);
+  })(0);
+  if (from !== to && el.__v != null && from !== 0) { var p = el.parentNode; p.classList.remove('u-bump'); void p.offsetWidth; p.classList.add('u-bump'); }
+}
+function paintLive() {
+  if (!QSTK || !$('#uLive')) return;
+  var pcs = 0, sets = 0, prod = 0;
+  for (var code in QSTK) {
+    var m = QSTK[code], t = 0; for (var k in m) t += m[k];
+    if (t <= 0) continue; prod++;
+    var u = 'pc'; try { u = unitOf(code); } catch (e) {}
+    if (u === 'set') sets += t; else pcs += t;
+  }
+  lvCount($('#uLvPcs'), pcs); lvCount($('#uLvSets'), sets); lvCount($('#uLvProd'), prod);
+  var sw = $('#uLvSetsW'); if (sw) sw.style.display = sets > 0 ? '' : 'none';
+  var lv = $('#uLive'); lv.classList.add('u-on');
+  lv.classList.remove('u-sweep'); void lv.offsetWidth; lv.classList.add('u-sweep');
+  liveTick();
 }
 function liveTick() {
-  var tx = $('#uLiveTx'); if (!tx) return;
-  var st = $('.lsb[data-where="app"] .lsb-strip');
-  if (st && st.classList.contains('on')) {
-    var g = function (k) { var e = $('.lsb[data-where="app"] [data-k="' + k + '"]'); return e ? e.textContent : ''; };
-    var h = 'Live stock · <b>' + esc(g('pcs')) + ' pcs</b> ready · ' + esc(g('prod')) + ' products';
-    if (tx.innerHTML !== h) tx.innerHTML = h;
-  }
-  var lv = $('#uLive .u-lvp'); if (lv) lv.style.display = $('.lsb[data-where="app"] img') ? '' : 'none';
+  var lv = $('#uLive'); if (!lv) return;
+  var arc = $('#uLvArc'), sec = $('#uLvSec'), ago = $('#uLvAgo');
+  if (!QSTK_AT) return;
+  var el = Math.max(0, Math.floor((Date.now() - QSTK_AT) / 1000)), left = Math.max(0, 60 - el);
+  if (arc) arc.style.strokeDashoffset = (97.4 * Math.min(1, el / 60)).toFixed(2);
+  if (sec) sec.textContent = LV.busy ? '' : left;
+  lv.classList.toggle('u-busy', LV.busy);
+  lv.classList.toggle('u-stale', el > 150);
+  if (ago) ago.textContent = LV.busy ? 'Refreshing live stock…' : el > 150 ? 'Reconnecting… last update ' + Math.floor(el / 60) + ' min ago' : el < 5 ? 'Updated just now' : 'Updated ' + el + 's ago';
+}
+function liveRefresh() {
+  if (LV.busy) return; LV.busy = true; liveTick();
+  var t = Date.now();
+  refreshStock().then(function () {
+    setTimeout(function () { LV.busy = false; paintLive(); }, Math.max(0, 650 - (Date.now() - t)));
+  }, function () { LV.busy = false; liveTick(); });
 }
 function syncHome() {
   var hw = $('#heroWrap');
@@ -650,7 +692,7 @@ function stkList(code) {
   return out.sort(function (a, b) { return b.q - a.q; });
 }
 function refreshStock() { QSTK_AT = 0; return loadStock().then(paintStkAll); }
-function paintStkAll() { try { paintCardsStk(); } catch (e) {} try { paintPdpStk(); } catch (e) {} try { paintQuick(); } catch (e) {} }
+function paintStkAll() { try { paintLive(); } catch (e) {} try { paintCardsStk(); } catch (e) {} try { paintPdpStk(); } catch (e) {} try { paintQuick(); } catch (e) {} }
 function paintCardsStk() {
   if (!QSTK) return;
   $$('#content .pc').forEach(function (pc) {
