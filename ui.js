@@ -155,20 +155,21 @@ function hero() {
   var picks = heroPicks();
   var el = document.createElement('section'); el.className = 'u-hero';
   el.innerHTML =
-    '<div class="u-lv" id="uLive" role="button" tabindex="0" aria-label="Live stock, tap to refresh">' +
-      '<div class="u-lvtop"><span class="u-lvdot"><i></i></span><span class="u-lvtag">Live stock</span><span class="u-lvsub">updates every minute</span>' +
-        '<span class="u-lvring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.5"/><circle class="fg" id="uLvArc" cx="18" cy="18" r="15.5"/></svg><b id="uLvSec">60</b></span></div>' +
-      '<div class="u-lvnums"><div><b id="uLvPcs">&mdash;</b><span>pcs ready</span></div>' +
-        '<div id="uLvSetsW"><b id="uLvSets">&mdash;</b><span>sets ready</span></div>' +
-        '<div><b id="uLvProd">&mdash;</b><span>products in stock</span></div></div>' +
-      '<div class="u-lvfoot"><span id="uLvAgo">Connecting to godown&hellip;</span><span class="u-lvtap">' + ic('refresh') + 'Tap to refresh</span></div>' +
+    '<div class="u-lv" id="uLive">' +
+      '<div class="u-lvtop"><span class="u-lvdot"><i></i></span><span class="u-lvtag">Live stock</span><span class="u-lvsub" id="uLvAgo">connecting&hellip;</span>' +
+        '<button type="button" class="u-lvring" id="uLvRef" aria-label="Refresh live stock"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.5"/><circle class="fg" id="uLvArc" cx="18" cy="18" r="15.5"/></svg><b id="uLvSec">60</b></button></div>' +
+      '<div class="u-lvnums">' +
+        '<button type="button" class="u-lvt" data-lv="quick"><span class="u-odo" id="uLvPcs">0</span><small>pcs ready</small></button>' +
+        '<button type="button" class="u-lvt" data-lv="quick" id="uLvSetsW"><span class="u-odo" id="uLvSets">0</span><small>sets ready</small></button>' +
+        '<button type="button" class="u-lvt" data-lv="quick"><span class="u-odo" id="uLvProd">0</span><small>products</small></button></div>' +
+      '<div class="u-lvbar" id="uLvBar"></div>' +
+      '<div class="u-lvtk" id="uLvTk"><div class="u-lvtkin" id="uLvTkIn"></div></div>' +
     '</div>' +
     '<div class="u-cats" id="uCatsRow"><div class="u-sh"><h3>Shop by category</h3><button type="button" class="u-all" data-u="cats">View all' + ic('arrow') + '</button></div>' +
     '<div class="u-crow">' + catTiles() + '</div></div>';
   c.parentNode.insertBefore(el, c);
   el.addEventListener('click', function (e) {
     var t = e.target.closest('[data-u],[data-cat],[data-code],#uLive'); if (!t) return;
-    if (t.id === 'uLive') { liveRefresh(); return; }
     if (t.hasAttribute('data-cat')) return selectCat(t.getAttribute('data-cat'));
     if (t.hasAttribute('data-code')) return openSheet(t.getAttribute('data-code'));
     var u = t.getAttribute('data-u');
@@ -176,42 +177,98 @@ function hero() {
     else if (u === 'cats') openCats();
     else if (u === 'browse') { var s = $('#content .sec'); if (s) window.scrollTo({ top: s.getBoundingClientRect().top + window.pageYOffset - 130, behavior: 'smooth' }); }
   });
-  var lv = $('#uLive');
-  if (lv) lv.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); liveRefresh(); } });
-  paintLive(); liveTick(); setInterval(liveTick, 1000);
+  liveSetup();
 }
-var LV = { pcs: null, sets: null, prod: null, busy: false };
+var LV = { busy: false, cats: [], tk: 0, tkTimer: null, hold: false };
+var LV_COL = ['#C8A84A', '#22A45D', '#3A3A3A', '#D9B95E', '#6FBF8E', '#8A6D25', '#9E9E98', '#B8963A', '#4C9A6A', '#CFC7B0'];
 function lvFmt(n) { try { return Number(n).toLocaleString('en-IN'); } catch (e) { return String(n); } }
-function lvCount(el, to) {
+/* odometer: each digit is a rolling 0-9 column */
+function odo(el, to) {
   if (!el) return;
-  var from = el.__v == null ? 0 : el.__v; el.__v = to;
-  if (from === to && el.textContent !== '—') return;
-  if (el.__raf) cancelAnimationFrame(el.__raf);
+  var txt = lvFmt(to); if (el.__t === txt) return;
+  var first = el.__t == null; el.__t = txt; el.setAttribute('aria-label', txt);
   var rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (rm || !window.requestAnimationFrame) { el.textContent = lvFmt(to); return; }
-  var t0 = 0, dur = 1100;
-  (function step(t) {
-    if (!t0) t0 = t;
-    var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 4);
-    el.textContent = lvFmt(Math.round(from + (to - from) * e));
-    if (k < 1) el.__raf = requestAnimationFrame(step);
-  })(0);
-  if (from !== to && el.__v != null && from !== 0) { var p = el.parentNode; p.classList.remove('u-bump'); void p.offsetWidth; p.classList.add('u-bump'); }
+  if (rm) { el.textContent = txt; return; }
+  var cols = Array.prototype.slice.call(el.querySelectorAll('.u-od'));
+  var chars = txt.split(''), digitsNeeded = chars.filter(function (c) { return /\d/.test(c); }).length;
+  if (cols.length !== digitsNeeded || first) {
+    el.innerHTML = chars.map(function (c) {
+      if (!/\d/.test(c)) return '<span class="u-osep" aria-hidden="true">' + c + '</span>';
+      var strip = ''; for (var i = 0; i < 20; i++) strip += '<i>' + (i % 10) + '</i>';
+      return '<span class="u-od" aria-hidden="true"><span class="u-ods">' + strip + '</span></span>';
+    }).join('');
+    cols = Array.prototype.slice.call(el.querySelectorAll('.u-od'));
+    cols.forEach(function (c) { c.firstChild.style.transition = 'none'; c.firstChild.style.transform = 'translateY(0)'; });
+    void el.offsetWidth;
+  }
+  var di = 0;
+  chars.forEach(function (c) {
+    if (!/\d/.test(c)) return;
+    var col = cols[di], d = +c, delay = di * 70; di++;
+    var s = col.firstChild;
+    s.style.transition = 'transform ' + (first ? 1.4 : .9) + 's cubic-bezier(.2,.9,.25,1.12) ' + delay + 'ms';
+    s.style.transform = 'translateY(-' + ((10 + d) * 5) + '%)';
+  });
+  if (!first) { var p = el.parentNode; p.classList.remove('u-bump'); void p.offsetWidth; p.classList.add('u-bump'); }
 }
-function paintLive() {
-  if (!QSTK || !$('#uLive')) return;
-  var pcs = 0, sets = 0, prod = 0;
+function lvData() {
+  var pcs = 0, sets = 0, prod = 0, by = {};
   for (var code in QSTK) {
     var m = QSTK[code], t = 0; for (var k in m) t += m[k];
     if (t <= 0) continue; prod++;
-    var u = 'pc'; try { u = unitOf(code); } catch (e) {}
+    var p = prod_(code), u = 'pc'; try { u = unitOf(p || code); } catch (e) {}
     if (u === 'set') sets += t; else pcs += t;
+    var cn = p ? p.category : 'Other';
+    var c = by[cn] || (by[cn] = { name: cn, qty: 0, n: 0, unit: u, code: code, best: 0 });
+    c.qty += t; c.n++; if (t > c.best) { c.best = t; c.code = code; }
   }
-  lvCount($('#uLvPcs'), pcs); lvCount($('#uLvSets'), sets); lvCount($('#uLvProd'), prod);
-  var sw = $('#uLvSetsW'); if (sw) sw.style.display = sets > 0 ? '' : 'none';
+  var order = []; try { CATS.forEach(function (c) { if (by[c.name]) order.push(by[c.name]); }); } catch (e) {}
+  for (var n in by) if (order.indexOf(by[n]) < 0) order.push(by[n]);
+  return { pcs: pcs, sets: sets, prod: prod, cats: order };
+}
+function prod_(code) { try { return prod(code); } catch (e) { return null; } }
+function paintLive() {
+  if (!QSTK || !$('#uLive')) return;
+  var d = lvData();
+  odo($('#uLvPcs'), d.pcs); odo($('#uLvSets'), d.sets); odo($('#uLvProd'), d.prod);
+  var sw = $('#uLvSetsW'); if (sw) sw.style.display = d.sets > 0 ? '' : 'none';
+  LV.cats = d.cats;
+  /* category split bar */
+  var bar = $('#uLvBar'), tot = 0; d.cats.forEach(function (c) { tot += c.qty; });
+  if (bar && tot) {
+    var segs = $$('i', bar);
+    if (segs.length !== d.cats.length) {
+      bar.innerHTML = d.cats.map(function (c, i) { return '<i data-i="' + i + '" style="background:' + LV_COL[i % LV_COL.length] + ';flex-grow:0"></i>'; }).join('');
+      segs = $$('i', bar); void bar.offsetWidth;
+    }
+    segs.forEach(function (s, i) { s.style.transitionDelay = (i * 60) + 'ms'; s.style.flexGrow = Math.max(d.cats[i].qty / tot * 100, 1.2).toFixed(2); });
+  }
+  if (LV.tk >= d.cats.length) LV.tk = 0;
+  tkShow(LV.tk, true);
   var lv = $('#uLive'); lv.classList.add('u-on');
   lv.classList.remove('u-sweep'); void lv.offsetWidth; lv.classList.add('u-sweep');
   liveTick();
+}
+function tkShow(i, quiet) {
+  var c = LV.cats[i], box = $('#uLvTkIn'); if (!c || !box) return;
+  LV.tk = i;
+  var u = c.unit === 'set' ? 'sets' : 'pcs';
+  var html = '<button type="button" class="u-lvrow" data-cat="' + esc(c.name) + '">' +
+    '<span class="u-lvim"><img alt="" src="' + img(c.code) + '"></span>' +
+    '<span class="u-lvnm"><b>' + esc(c.name) + '</b><small>' + c.n + ' products ready</small></span>' +
+    '<span class="u-lvq"><b>' + lvFmt(c.qty) + '</b><small>' + u + '</small></span>' + ic('arrow') + '</button>';
+  var old = box.firstChild;
+  if (old && !quiet) {
+    var nw = document.createElement('div'); nw.className = 'u-lvslide in'; nw.innerHTML = html;
+    old.classList.add('out'); box.appendChild(nw);
+    setTimeout(function () { if (old.parentNode) old.parentNode.removeChild(old); nw.classList.remove('in'); }, 520);
+  } else if (!old) { box.innerHTML = '<div class="u-lvslide">' + html + '</div>'; }
+  else if (quiet) { old.innerHTML = html; }
+  $$('#uLvBar i').forEach(function (s, k) { s.classList.toggle('on', k === i); });
+}
+function tkNext() {
+  if (LV.hold || document.hidden || LV.cats.length < 2 || !document.body.classList.contains('u-home')) return;
+  tkShow((LV.tk + 1) % LV.cats.length);
 }
 function liveTick() {
   var lv = $('#uLive'); if (!lv) return;
@@ -222,14 +279,44 @@ function liveTick() {
   if (sec) sec.textContent = LV.busy ? '' : left;
   lv.classList.toggle('u-busy', LV.busy);
   lv.classList.toggle('u-stale', el > 150);
-  if (ago) ago.textContent = LV.busy ? 'Refreshing live stock…' : el > 150 ? 'Reconnecting… last update ' + Math.floor(el / 60) + ' min ago' : el < 5 ? 'Updated just now' : 'Updated ' + el + 's ago';
+  if (ago) ago.textContent = LV.busy ? 'refreshing…' : el > 150 ? 'reconnecting…' : el < 5 ? 'updated just now' : 'updated ' + el + 's ago';
 }
 function liveRefresh() {
   if (LV.busy) return; LV.busy = true; liveTick();
   var t = Date.now();
   refreshStock().then(function () {
-    setTimeout(function () { LV.busy = false; paintLive(); }, Math.max(0, 650 - (Date.now() - t)));
+    setTimeout(function () { LV.busy = false; paintLive(); }, Math.max(0, 700 - (Date.now() - t)));
   }, function () { LV.busy = false; liveTick(); });
+}
+function liveSetup() {
+  var lv = $('#uLive'); if (!lv) return;
+  lv.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var t = e.target;
+    if (t.closest('#uLvRef')) return liveRefresh();
+    var row = t.closest('.u-lvrow'); if (row) return selectCat(row.getAttribute('data-cat'));
+    var seg = t.closest('#uLvBar i'); if (seg) { LV.hold = true; tkShow(+seg.getAttribute('data-i')); setTimeout(function () { LV.hold = false; }, 4000); return; }
+    if (t.closest('[data-lv="quick"]')) return openQuick();
+  });
+  var tk = $('#uLvTk');
+  if (tk) {
+    tk.addEventListener('pointerenter', function () { LV.hold = true; });
+    tk.addEventListener('pointerleave', function () { LV.hold = false; });
+    var sx = null;
+    tk.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; LV.hold = true; }, { passive: true });
+    tk.addEventListener('touchend', function (e) {
+      LV.hold = false; if (sx == null) return;
+      var dx = e.changedTouches[0].clientX - sx; sx = null;
+      if (Math.abs(dx) > 40 && LV.cats.length > 1) tkShow((LV.tk + (dx < 0 ? 1 : LV.cats.length - 1)) % LV.cats.length);
+    }, { passive: true });
+  }
+  /* subtle tilt follow on desktop */
+  if (window.matchMedia && matchMedia('(hover:hover)').matches) {
+    lv.addEventListener('pointermove', function (e) { var r = lv.getBoundingClientRect(); lv.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%'); lv.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%'); });
+  }
+  paintLive(); liveTick();
+  setInterval(liveTick, 1000);
+  setInterval(tkNext, 2800);
 }
 function syncHome() {
   var hw = $('#heroWrap');
