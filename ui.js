@@ -255,7 +255,7 @@ function tkShow(i, quiet) {
   var u = c.unit === 'set' ? 'sets' : 'pcs';
   var html = '<button type="button" class="u-lvrow" data-cat="' + esc(c.name) + '">' +
     '<span class="u-lvim"><img alt="" src="' + img(c.code) + '"></span>' +
-    '<span class="u-lvnm"><b>' + esc(c.name) + '</b><small>' + c.n + ' products ready</small></span>' +
+    '<span class="u-lvnm"><b>' + esc(c.name) + '</b><small>' + c.n + (c.n === 1 ? ' product' : ' products') + ' ready</small></span>' +
     '<span class="u-lvq"><b>' + lvFmt(c.qty) + '</b><small>' + u + '</small></span>' + ic('arrow') + '</button>';
   var old = box.firstChild;
   if (old && !quiet) {
