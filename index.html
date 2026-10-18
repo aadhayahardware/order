@@ -663,7 +663,7 @@ function subfBar(base){
  h+=`<div class="sfc${fSort==='asc'?' on':''}" onclick="setSort('asc')">Price \u2191</div>`;
  h+=`<div class="sfc${fSort==='desc'?' on':''}" onclick="setSort('desc')">Price \u2193</div>`;
  fins.forEach(f=>{h+=`<div class="sfc${fFin===f?' on':''}" onclick="setFin('${f.replace(/'/g,'')}')"><span class="sw2" style="background:${finColor(f)}"></span>${f}</div>`});
- sizes.forEach(s=>{h+=`<div class="sfc${fSize===s?' on':''}" onclick="setSize('${s}')">${s}</div>`});
+ sizes.forEach(s=>{h+=`<div class="sfc${fSize===s?' on':''}" data-s="${s.replace(/"/g,'&quot;')}" onclick="setSize(this.dataset.s)">${s}</div>`});
  return `<div class="subf">${h}</div>`;
 }
 function render(){
@@ -725,7 +725,7 @@ function openSheet(code){
  cur=P.find(x=>x.code===code);qty=1;markRv(code);track("view_item",{currency:"INR",value:isEnq(cur)?0:minNet(cur),items:[{item_id:cur.code,item_name:cur.name,item_category:cur.category}]});
  selSize=cur.sizes.length?cur.sizes[0]:null;
  selFin=cur.finishes.length?cur.finishes[0]:null;
- const sizeBlock=cur.sizes.length?`<div class="lbl">SELECT SIZE</div><div class="opts" id="szOpts">${cur.sizes.map(s=>`<div class="opt${s===selSize?' on':''}" onclick="pickSize('${s}',this)">${s}</div>`).join('')}</div>`:'';
+ const sizeBlock=cur.sizes.length?`<div class="lbl">SELECT SIZE</div><div class="opts" id="szOpts">${cur.sizes.map(s=>`<div class="opt${s===selSize?' on':''}" onclick="pickSize(this.textContent.trim(),this)">${s}</div>`).join('')}</div>`:'';
  const finBlock=`<div class="lbl">SELECT FINISH</div><div class="opts" id="fnOpts">${cur.finishes.map(f=>`<div class="opt${f===selFin?' on':''}" onclick="pickFin(this)"><span class="sw" style="background:${finColor(f)}"></span>${f}</div>`).join('')}</div>`;
  document.getElementById('shCode').textContent=cur.code;
  document.getElementById('shBody').innerHTML=`
