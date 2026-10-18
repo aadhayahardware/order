@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://order.aadhayahardware.com/sitemap.xml
-# refresh 2026-07-03
