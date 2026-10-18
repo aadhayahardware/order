@@ -99,7 +99,9 @@ td:last-child{text-align:right;color:var(--gold);font-weight:700}
 .qtyrow{display:flex;align-items:center;gap:14px;margin-top:10px}
 .stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .stepper button{width:42px;height:42px;background:var(--card);border:0;color:var(--gold);font-size:20px}
-.stepper span{width:46px;text-align:center;font-size:16px;font-weight:700}
+.stepper span,.stepper .qin{width:46px;text-align:center;font-size:16px;font-weight:700}
+.qin{border:0;outline:0;background:transparent;color:inherit;font:inherit;font-weight:700;text-align:center;padding:0;-moz-appearance:textfield;font-variant-numeric:tabular-nums}.qin::-webkit-outer-spin-button,.qin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}.qin:focus{background:rgba(200,168,74,.15);border-radius:6px}
+.cq .qin{width:44px;height:30px;font-size:15px}
 .linep{flex:1;text-align:right;font-size:13px}
 .linep b{color:var(--gold2);font-size:17px}
 .sh-cta{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--line);background:var(--bg)}
@@ -256,7 +258,7 @@ body{overflow-x:hidden;max-width:100vw}
 .sheet{top:3%}
 .sh-cta{padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
 .stepper button{width:46px;height:46px;font-size:22px}
-.stepper span{width:50px;font-size:17px}
+.stepper span,.stepper .qin{width:58px;font-size:17px}
 .citem .cq button{width:34px;height:34px;font-size:17px}
 .del{font-size:15px;padding:6px 8px}
 .btn{padding:16px;font-size:15px;min-height:52px}
@@ -332,7 +334,7 @@ body{overflow-x:hidden;max-width:100vw}
 #toast{display:flex;align-items:center;gap:12px;justify-content:center}
 #toast .tub{background:none;border:0;color:var(--gold2);font-weight:800;font-size:12.5px;letter-spacing:1px;cursor:pointer;padding:2px 4px}
 .cnote{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;color:var(--txt);font-size:13.5px;padding:12px 14px;font-family:inherit;resize:vertical;min-height:52px}
-</style><!-- Google Analytics (GA4) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-37FKYKRGD3"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-37FKYKRGD3');function track(n,p){try{gtag("event",n,p||{})}catch(e){}}</script><link rel="stylesheet" href="ui.css?v=5"><link rel="stylesheet" href="glass.css?v=1"></head><body><script src="intro.js?v=1"></script>
+</style><!-- Google Analytics (GA4) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-37FKYKRGD3"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-37FKYKRGD3');function track(n,p){try{gtag("event",n,p||{})}catch(e){}}</script><link rel="stylesheet" href="ui.css?v=6"><link rel="stylesheet" href="glass.css?v=1"></head><body><script src="intro.js?v=1"></script>
 <!-- ===== LANDING PAGE ===== -->
 <div id="landing">
  <div class="lbar">PREMIUM SS HARDWARE MANUFACTURER · RAJKOT, GUJARAT · DEALER &amp; DISTRIBUTOR ENQUIRIES WELCOME</div>
@@ -712,7 +714,7 @@ function unitPriceOrig(){
  return Math.min.apply(null,rows.map(function(r){return r.price}));
 }
 function refreshPrice(){
- document.getElementById('qv').textContent=qty;
+ var qvE=document.getElementById('qv');if(qvE&&document.activeElement!==qvE)qvE.value=qty;
  if(isEnq(cur)){document.getElementById('lineTot').innerHTML='<b style="font-size:14px">On enquiry</b>';return;}
  const o=unitPriceOrig(), u=offPrice(cur,o);
  const html=hasDisc(cur)
@@ -740,7 +742,7 @@ function openSheet(code){
    <div style="display:flex;gap:7px;align-items:flex-start;margin-top:14px;font-size:11px;color:#d9c483;background:rgba(200,168,74,.07);border:1px solid var(--line);border-radius:9px;padding:9px 11px;line-height:1.45">ⓘ <span>Some finishes &amp; sizes are subject to availability — final confirmation on WhatsApp.</span></div>
    <div class="lbl">QUANTITY</div>
    <div class="qtyrow"><div class="stepper">
-     <button onclick="chQty(-1)">−</button><span id="qv">1</span><button onclick="chQty(1)">+</button></div>
+     <button onclick="chQty(-1)">−</button><input id="qv" class="qin" type="number" inputmode="numeric" min="1" step="1" value="1" aria-label="Quantity" onfocus="this.select()" oninput="setQty(this.value)" onblur="if(!(parseInt(this.value,10)>0)){this.value=qty}"><button onclick="chQty(1)">+</button></div>
      <div class="linep" id="lineTot"></div></div>
   </div>`;
  refreshPrice();
@@ -751,6 +753,7 @@ function openSheet(code){
 function pickSize(s,el){selSize=s;[...document.getElementById('szOpts').children].forEach(o=>o.classList.toggle('on',o===el));refreshPrice()}
 function pickFin(el){selFin=el.textContent;[...document.getElementById('fnOpts').children].forEach(o=>o.classList.toggle('on',o===el));refreshPrice()}
 function chQty(d){qty=Math.max(1,qty+d);refreshPrice()}
+function setQty(v){var n=parseInt(v,10);if(n>0){qty=Math.min(n,99999);refreshPrice()}}
 
 function addToCart(){
  const o=unitPriceOrig(), u=offPrice(cur,o);
@@ -775,7 +778,7 @@ function openCart(){
     <div class="ci"><div class="c1">${it.name} <span style="color:var(--mut);font-size:11px">${it.code}</span></div>
      <div class="c2">${[it.size,it.finish].filter(Boolean).join(' · ')}</div>
      <div class="c3">${priceLine}</div></div>
-    <div class="cq"><button onclick="cq(${i},-1)">−</button><span>${it.qty}</span><button onclick="cq(${i},1)">+</button>
+    <div class="cq"><button onclick="cq(${i},-1)">−</button><input class="qin" type="number" inputmode="numeric" min="1" step="1" value="${it.qty}" aria-label="Quantity" onfocus="this.select()" onchange="cqSet(${i},this.value)"><button onclick="cq(${i},1)">+</button>
      <button class="del" onclick="cdel(${i})">🗑</button></div></div>`}).join('');
   const saved=mrp-tot;
   track("begin_checkout",{currency:"INR",value:tot,items:cart.map(function(it){return {item_id:it.code,item_name:it.name,quantity:it.qty,price:it.price||0}})});
@@ -798,6 +801,7 @@ function openCart(){
  document.getElementById('ovbg').classList.add('open');
 }
 function cq(i,d){cart[i].qty=Math.max(1,cart[i].qty+d);saveCart();openCart()}
+function cqSet(i,v){var n=parseInt(v,10);if(n>0)cart[i].qty=Math.min(n,99999);saveCart();openCart()}
 let lastDel=null;
 function cdel(i){lastDel={item:cart[i],i:i};cart.splice(i,1);saveCart();openCart();toast('Item removed','UNDO',undoDel)}
 function undoDel(){if(!lastDel)return;cart.splice(Math.min(lastDel.i,cart.length),0,lastDel.item);lastDel=null;saveCart();openCart();toast('Item restored')}

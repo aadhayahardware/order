@@ -604,3 +604,5 @@ html .stk-line{display:none!important}
 .u-lv.u-stale .u-lvring .fg{stroke:var(--u-amber)}
 @media(max-width:560px){.u-lv{padding:13px 13px 10px}.u-odo,.u-od,.u-ods i{height:23px;line-height:23px}.u-odo{font-size:20px}.u-lvt{padding:8px 9px 7px!important}.u-lvnums{gap:6px}}
 @media(prefers-reduced-motion:reduce){.u-lv,.u-lv:before,.u-lvdot:before,.u-lvdot:after,.u-lv.u-sweep:after,.u-bump .u-odo,.u-lvslide.in{animation:none}.u-lvslide.in{transform:none;opacity:1}}
+.citem .cq .qin{height:36px!important;width:52px!important;border-radius:0!important;border-top:1.5px solid var(--u-line2)!important;border-bottom:1.5px solid var(--u-line2)!important;font-size:16px!important;color:var(--u-ink)}
+.stepper .qin{color:var(--u-ink);font-size:17px!important}
