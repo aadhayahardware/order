@@ -14,12 +14,12 @@ var URL = "https://rtgfbovemrxfsiflwmvp.supabase.co/rest/v1/v_public_catalog" +
   "?select=code,name,category,series,material,finishes,sizes,priceRows,priceNote,description,bestseller,isNew,featured,image_url,image2_url" +
   "&finishes=neq.%5B%5D&order=sort_order.asc";
 var KEY = "sb_publishable_BjpMZA25KLEHoDiX1FYZmA_W_7XBwjN";
-var CK = "aad_dbcat_v2";
+var CK = "aad_dbcat_v3"; /* v3: Door Stoppers + General + accessories → Accessories, naye codes */
 var PH = {}, PH2 = {}; /* code -> uploaded photo URL (accounting app se) */
 
 /* Nayi category ki tagline + 50% OFF wali categories */
-var TAGLINE = { "Knobs": "Zinc Alloy Designer Knobs", "Door Stoppers": "Premium Door Stoppers" };
-var DISC_ADD = ["Knobs", "Door Stoppers"];
+var TAGLINE = { "Knobs": "Zinc Alloy Designer Knobs", "Accessories": "Premium Accessories" };
+var DISC_ADD = ["Knobs"];
 try { DISC_ADD.forEach(function (c) { if (DISC_CATS.indexOf(c) < 0) DISC_CATS.push(c); }); } catch (e) {}
 
 function has(code) { for (var i = 0; i < P.length; i++) if (P[i].code === code) return true; return false; }
@@ -27,13 +27,15 @@ function hasCat(n) { for (var i = 0; i < CATS.length; i++) if (CATS[i].name === 
 function arr(v) { return Array.isArray(v) ? v : []; }
 function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 function imgOf(code) { if (PH[code]) return PH[code]; try { return IMG[code]; } catch (e) { return code + ".jpg"; } }
+function safe(code) { return String(code).replace(/[^A-Za-z0-9._-]/g, "_"); }
 function isOff(n) { try { return DISC_CATS.indexOf(n) > -1; } catch (e) { return false; } }
 
 function merge(rows) {
   var newCats = [], added = 0;
   (rows || []).forEach(function (r) {
     if (!r || !r.code) return;
-    if (r.image_url && r.image_url.indexOf("supabase.co") > -1) PH[r.code] = r.image_url;
+    /* IMG[] code ke space / * / ” ko "_" bana deta hai (HEAVY CONSIL 1” → HEAVY_CONSIL_1_.jpg) — dono naam se photo milni chahiye */
+    if (r.image_url && r.image_url.indexOf("supabase.co") > -1) PH[r.code] = PH[safe(r.code)] = r.image_url;
     if (r.image2_url) PH2[r.code] = r.image2_url;
     if (!r.category || has(r.code)) { if (r.isNew) P.forEach(function (p) { if (p.code === r.code) p.isNew = true; }); return; }
     P.push({
