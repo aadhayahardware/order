@@ -80,7 +80,7 @@ function make(where) {
   el.setAttribute("data-where", where);
   el.innerHTML =
     '<div class="ofs-tr">' +
-      '<div class="ofc" data-k="launch"><video muted playsinline autoplay preload="metadata" poster="launch-poster.jpg?v=' + V + '" src="launch-full.mp4?v=' + V + '"></video></div>' +
+      '<div class="ofc" data-k="launch"><video muted playsinline preload="none" poster="launch-poster.jpg?v=' + V + '" data-src="launch-full.mp4?v=' + V + '"></video></div>' +
       '<div class="ofc" data-k="stock"><div class="ols">' +
         '<div class="ols-l"><div class="ols-k">AADHAYA</div><h2 class="ols-h">Live <span>Stock</span></h2>' +
         '<div class="ols-s">ऑर्डर से पहले, कितना माल तैयार</div><span class="ols-b">स्टॉक देखें →</span></div>' +
@@ -100,13 +100,15 @@ function make(where) {
     if (!el.classList.contains("on")) return;
     if (cur === 0) {
       if (!first) return;                         // first run: wait for the full video to end
-      try { v.currentTime = 0; var p = v.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+      try { if (vis() && v.getAttribute("src")) { v.currentTime = 0; var p = v.play(); if (p && p.catch) p.catch(function () {}); } } catch (e) {}
       t = setTimeout(function () { go(1); }, LOOP_DWELL);
     } else t = setTimeout(function () { go(cur + 1); }, cur >= 2 ? LS_DWELL : STOCK_DWELL);   // wraps to 0 after the last card
   }
   function toLoop() {
     if (first) return; first = true;
-    v.src = "launch-loop.mp4?v=" + V; v.loop = true;
+    v.loop = true;
+    if (!vis()) { v.removeAttribute("src"); v.setAttribute("data-src", "launch-loop.mp4?v=" + V); return; }
+    v.src = "launch-loop.mp4?v=" + V;
     var p = v.play(); if (p && p.catch) p.catch(function () {});
   }
   v.addEventListener("ended", function () { if (!first) { toLoop(); go(1); } });
@@ -122,6 +124,17 @@ function make(where) {
   cards[0].addEventListener("click", function () { openCat(LAUNCH_CAT); });
   cards[1].addEventListener("click", function () { box().classList.add("on"); });
   el._plan = plan;
+  /* SPEED: video sirf tab load/play ho jab slider screen par dikhe; screen se bahar = pause (Android battery + smooth scroll) */
+  function vis() { return el.classList.contains("on") && el.getClientRects().length > 0; }
+  el._arm = function () {
+    if (!vis()) { try { v.pause(); } catch (e) {} return; }
+    if (document.readyState !== "complete") { if (!el._wl) { el._wl = 1; addEventListener("load", function () { setTimeout(el._arm, 300); }); } return; }   /* pehle app khule, phir video */
+    if (!v.getAttribute("src") && v.getAttribute("data-src")) { v.preload = "auto"; v.src = v.getAttribute("data-src"); }
+    var p = v.play(); if (p && p.catch) p.catch(function () {});
+  };
+  if (window.IntersectionObserver) new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) el._arm(); else try { v.pause(); } catch (x) {} });
+  }).observe(el);
   return el;
 }
 
@@ -142,7 +155,7 @@ function paint() {
       if (show !== el.classList.contains("on")) {
         el.classList.toggle("on", show);
         var vid = el.querySelector("video");
-        if (vid) { if (show) { var p = vid.play(); if (p && p.catch) p.catch(function () {}); } else vid.pause(); }
+        if (vid) { if (show) { if (el._arm) el._arm(); } else vid.pause(); }
         if (show && el._plan) el._plan();
       }
       var q = el.querySelectorAll("[data-d]");
