@@ -82,7 +82,7 @@ function apply() {
   } catch (e) { return; }
   first = false;
   if (!changed) return;
-  try { render(); } catch (e) {}
+  try { (window.aadRenderSoon || render)(); } catch (e) {}
   try { var sh = document.getElementById("sheet"); if (sh && sh.className.indexOf("open") >= 0) refreshPrice(); } catch (e) {}
 }
 

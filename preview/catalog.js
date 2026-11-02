@@ -204,7 +204,7 @@ function loadCats() {
     .then(function (rows) {
       if (!Array.isArray(rows)) return;
       try { localStorage.setItem(CCK, JSON.stringify(rows)); } catch (e) {}
-      applyCats(rows); try { render(); } catch (e) {}
+      applyCats(rows); try { (window.aadRenderSoon || render)(); } catch (e) {}
     }).catch(function () {});
 }
 
@@ -220,7 +220,7 @@ function load() {
     .then(function (rows) {
       if (!Array.isArray(rows)) return;
       try { localStorage.setItem(CK, JSON.stringify({ t: Date.now(), rows: rows })); } catch (e) {}
-      if (merge(rows)) { try { render(); } catch (e) {} }
+      if (merge(rows)) { try { (window.aadRenderSoon || render)(); } catch (e) {} }
       if (CROWS) applyCats(CROWS);
       sweep();
     }).catch(function () {});

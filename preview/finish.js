@@ -101,7 +101,7 @@ function apply() {
       p.priceRows = R; changed = true;
     }
   });
-  if (changed) { try { render(); } catch (e) {} }
+  if (changed) { try { (window.aadRenderSoon || render)(); } catch (e) {} }
   return changed;
 }
 

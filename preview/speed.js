@@ -7,8 +7,11 @@
    1) Live stock ki 5 alag-alag request (stock.js, ui.js, offers.js, livestock.js...) ko
       EK request me badal deta hai — sab files usi ek jawab ko share karti hain.
    2) Wahi request 20 second ke andar dobara aaye to network par nahi jaati.
-   3) Neeche ki product rows (jo screen par nahi hain) ko browser tab tak draw nahi karta
-      jab tak user scroll karke wahan na pahunche (content-visibility). Dikhne me same. */
+   3) Naya data aane par page 3-4 baar dobara banta tha — ab ek hi baar.
+   4) Neeche ki product rows (jo screen par nahi hain) ko browser tab tak draw nahi karta
+      jab tak user scroll karke wahan na pahunche (content-visibility). Dikhne me same.
+   5) Category chips, search box aur Live Stock ke tiles par blur hata diya —
+      inke peeche ya to saada halka background hai ya pehle se blur wala header/card, isliye dikhne me same; phone ka GPU kam thakta hai. */
 (function () {
   "use strict";
   if (window.__aadSpeed) return; window.__aadSpeed = 1;
@@ -60,8 +63,21 @@
     };
   }
 
-  /* ---------- 3: off-screen product rows ko draw mat karo ---------- */
-  var css = "#content>.grid{content-visibility:auto;contain-intrinsic-size:auto 307px}";
+  /* ---------- 3: data aane par baar-baar poora page dobara na bane ----------
+     catalog.js / price.js / finish.js teeno apna data aate hi render() karte the (3-4 baar).
+     Ab jo bhi 80ms ke andar aaye, unka EK hi render hota hai. User ke tap (chip, search) pe render turant hi hota hai. */
+  var rT = null;
+  window.aadRenderSoon = function () {
+    if (rT) return;
+    rT = setTimeout(function () { rT = null; try { render(); } catch (e) {} }, 80);
+  };
+
+  /* ---------- 4: off-screen product rows ko draw mat karo ----------
+     ---------- 5: chips, search box aur Live Stock ke tiles par
+                  dobara blur nahi (header / Live Stock card khud pehle se blur hai — dikhne me same,
+                  Android GPU par aadha kaam) ---------- */
+  var css = "#content>.grid{content-visibility:auto;contain-intrinsic-size:auto 307px}" +
+    ".chips .chip,header .search,.u-lv .u-lvt{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}";
   var st = document.createElement("style"); st.id = "aad-speed"; st.textContent = css;
   (document.head || document.documentElement).appendChild(st);
 })();
