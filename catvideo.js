@@ -39,7 +39,9 @@ st.textContent =
 ".cv-pbtn:before{content:'\\25B6';margin-right:5px;color:#C8A84A}" +
 ".cv-fs{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}" +
 ".cv-fs video{max-width:100%;max-height:78vh;border-radius:14px;background:#000}" +
-".cv-fs .cv-x{position:absolute;right:14px;top:14px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:22px;cursor:pointer}" +
+".cv-fs .cv-x{position:absolute;left:14px;top:calc(14px + env(safe-area-inset-top,0px));z-index:5;display:flex;align-items:center;gap:6px;height:44px;padding:0 18px 0 14px;border-radius:24px;border:0;background:#fff;color:#111;font:700 14px/1 Poppins,system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4)}" +
+".cv-fs .cv-x:before{content:'\\2190';font-size:18px}" +
+".cv-fs video{margin-top:52px}" +
 ".cv-fs .cv-t{color:#fff;font:600 14px Poppins,system-ui,sans-serif;margin-top:12px;text-align:center}" +
 ".cv-fs .cv-go{margin-top:10px;border:0;border-radius:24px;padding:10px 18px;background:#C8A84A;color:#111;font:700 13px Poppins,system-ui,sans-serif;cursor:pointer}";
 document.head.appendChild(st);
@@ -76,16 +78,25 @@ function stop(c) {
 /* ---------- full screen player ---------- */
 function full(x) {
   var d = document.createElement("div"); d.className = "cv-fs";
-  d.innerHTML = '<button class="cv-x" aria-label="Close">×</button>' +
+  d.innerHTML = '<button class="cv-x" type="button" aria-label="Back">Back</button>' +
     '<video src="' + esc(x.video_url) + '"' + (x.poster_url ? ' poster="' + esc(x.poster_url) + '"' : "") + ' controls autoplay muted loop playsinline></video>' +
     (x.title ? '<div class="cv-t">' + esc(x.title) + "</div>" : "") +
     (x.product_code && hasP(x.product_code) && !sheetOpenFor(x.product_code) ? '<button class="cv-go">Product dekho · ' + esc(x.product_code) + " →</button>" : "");
-  function close() { try { d.querySelector("video").pause(); } catch (e) {} d.remove(); document.removeEventListener("keydown", key); }
+  /* v2: phone ka Back button bhi player band kare (app se bahar na nikle) + saaf "Back" button */
+  var closed = false, pushed = false;
+  function shut() {
+    if (closed) return; closed = true;
+    try { d.querySelector("video").pause(); } catch (e) {}
+    d.remove(); document.removeEventListener("keydown", key); window.removeEventListener("popstate", onPop);
+  }
+  function onPop() { pushed = false; shut(); }
+  function close() { if (closed) return; if (pushed) { try { history.back(); return; } catch (e) {} } shut(); }
   function key(e) { if (e.key === "Escape") close(); }
-  d.querySelector(".cv-x").onclick = close;
+  try { history.pushState({ cvfs: 1 }, ""); pushed = true; window.addEventListener("popstate", onPop); } catch (e) {}
+  d.querySelector(".cv-x").onclick = function (e) { e.stopPropagation(); close(); };
   d.addEventListener("click", function (e) { if (e.target === d) close(); });
   var go = d.querySelector(".cv-go");
-  if (go) go.onclick = function () { close(); try { openSheet(x.product_code); } catch (e) {} };
+  if (go) go.onclick = function () { close(); setTimeout(function () { try { openSheet(x.product_code); } catch (e) {} }, 60); };
   document.addEventListener("keydown", key);
   document.body.appendChild(d);
 }
