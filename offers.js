@@ -7,7 +7,7 @@
    Add a card later: add an entry to CARDS below. */
 
 var LAUNCH_CAT = "SS Mortise Handles";      // category opened by the launch card (exact chip name)
-var V = "1";                                 // bump when a launch video/image is replaced
+var V = "2";                                 // bump when a launch video/image is replaced
 var BASE = "https://rtgfbovemrxfsiflwmvp.supabase.co/rest/v1/v_public_stock?select=app_code,qty&qty=gt.0&order=app_code.asc";
 var KEY = "sb_publishable_BjpMZA25KLEHoDiX1FYZmA_W_7XBwjN";
 var EVERY = 60000, STOCK_DWELL = 4500, LOOP_DWELL = 7700, POSTER = "live-stock-poster.jpg?v=1";
@@ -34,6 +34,9 @@ function css() {
     ".ofs-tr::-webkit-scrollbar{display:none}" +
     ".ofc{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:2/1;border-radius:14px;overflow:hidden;position:relative;background:#0A0A0A;border:1px solid rgba(200,168,74,.35);cursor:pointer;-webkit-tap-highlight-color:transparent}" +
     ".ofc video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#0A0A0A}" +
+    ".ofs-pl{display:none;position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(10,10,10,.55);border:1.5px solid #E9CF7A;pointer-events:none;z-index:2}" +
+    ".ofs-pl:before{content:'';position:absolute;left:19px;top:14px;border-style:solid;border-width:10px 0 10px 15px;border-color:transparent transparent transparent #E9CF7A}" +
+    ".ofs.ofs-tap .ofs-pl{display:block}" +
     ".ofs-dots{display:flex;gap:6px;justify-content:center;padding:9px 0 4px}" +
     ".ofs-dots i{width:6px;height:6px;border-radius:3px;background:#d9d5cc;transition:width .3s,background .3s}" +
     ".ofs-dots i.on{width:18px;background:#C8A84A}" +
@@ -106,7 +109,7 @@ function make(where) {
   el.setAttribute("data-where", where);
   el.innerHTML =
     '<div class="ofs-tr">' + (FEST ? diwaliCard() : '') +
-      '<div class="ofc" data-k="launch"><video muted playsinline preload="none" poster="launch-poster.jpg?v=' + V + '" data-src="launch-full.mp4?v=' + V + '"></video></div>' +
+      '<div class="ofc" data-k="launch"><video muted playsinline webkit-playsinline disablepictureinpicture disableremoteplayback preload="none" poster="launch-poster.jpg?v=' + V + '" data-src="launch-full.mp4?v=' + V + '"></video><i class="ofs-pl" aria-hidden="true"></i></div>' +
       '<div class="ofc" data-k="stock"><div class="ols">' +
         '<div class="ols-l"><div class="ols-k">AADHAYA</div><h2 class="ols-h">Live <span>Stock</span></h2>' +
         '<div class="ols-s">ऑर्डर से पहले, कितना माल तैयार</div><span class="ols-b">स्टॉक देखें →</span></div>' +
@@ -119,6 +122,25 @@ function make(where) {
   var tr = el.querySelector(".ofs-tr"), cards = tr.children, dots = el.querySelector(".ofs-dots").children,
       v = el.querySelector("video"), cur = 0, t = null, first = false;
 
+  /* MOBILE PLAY FIX (23 Nov 2026): muted property pakka set; play() fail ho (battery/data saver, PWA resume)
+     to ▶ dikhao aur pehle touch par chala do; app wapas khule to dobara chalao. */
+  v.muted = true; v.defaultMuted = true; v.setAttribute("muted", "");
+  var waitTap = false;
+  function onTap() { waitTap = false; document.removeEventListener("touchstart", onTap, true); document.removeEventListener("click", onTap, true); if (vis() && cur === FI) tryPlay(); }
+  function tryPlay() {
+    try {
+      v.muted = true;
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {
+        if (!vis() || cur !== FI) return;
+        el.classList.add("ofs-tap");
+        if (!waitTap) { waitTap = true; document.addEventListener("touchstart", onTap, true); document.addEventListener("click", onTap, true); }
+      });
+    } catch (e) {}
+  }
+  v.addEventListener("playing", function () { el.classList.remove("ofs-tap"); });
+  v.addEventListener("loadeddata", function () { if (v.paused && vis() && cur === FI) tryPlay(); });
+
   function mark(n) { for (var k = 0; k < dots.length; k++) dots[k].className = k === n ? "on" : ""; }
   function go(n) { cur = (n + cards.length) % cards.length; tr.scrollTo({ left: cards[cur].offsetLeft - 16, behavior: "smooth" }); mark(cur); plan(); }
   function plan() {
@@ -127,7 +149,7 @@ function make(where) {
     if (cur < FI) { t = setTimeout(function () { go(cur + 1); }, FEST_DWELL); return; }   // Diwali card
     if (cur === FI) {
       if (!first) { el._arm(); waitSlow(); return; }   // first run: wait for the full video to end
-      try { if (vis() && v.getAttribute("src")) { v.currentTime = 0; var p = v.play(); if (p && p.catch) p.catch(function () {}); } } catch (e) {}
+      try { if (vis() && v.getAttribute("src")) { v.currentTime = 0; tryPlay(); } } catch (e) {}
       t = setTimeout(function () { go(FI + 1); }, LOOP_DWELL);
     } else t = setTimeout(function () { go(cur + 1); }, cur >= FI + 2 ? LS_DWELL : STOCK_DWELL);   // wraps to 0 after the last card
   }
@@ -136,7 +158,7 @@ function make(where) {
     v.loop = true;
     if (!vis()) { v.removeAttribute("src"); v.setAttribute("data-src", "launch-loop.mp4?v=" + V); return; }
     v.src = "launch-loop.mp4?v=" + V;
-    var p = v.play(); if (p && p.catch) p.catch(function () {});
+    tryPlay();
   }
   v.addEventListener("ended", function () { if (!first) { toLoop(); go(FI + 1); } });
   v.addEventListener("error", function () { if (!first) { first = true; plan(); } });
@@ -150,7 +172,7 @@ function make(where) {
   }, { passive: true });
   tr.addEventListener("touchstart", function () { clearTimeout(t); }, { passive: true });
   tr.addEventListener("touchend", function () { setTimeout(plan, 600); });
-  cards[FI].addEventListener("click", function () { openCat(LAUNCH_CAT); });
+  cards[FI].addEventListener("click", function () { if (el.classList.contains("ofs-tap") || (v.paused && v.readyState < 3 && v.getAttribute("src"))) { tryPlay(); return; } openCat(LAUNCH_CAT); });
   cards[FI + 1].addEventListener("click", function () { box().classList.add("on"); });
   if (FEST) cards[0].addEventListener("click", function () { go(1); });
   el._plan = plan;
@@ -158,10 +180,14 @@ function make(where) {
   function vis() { return el.classList.contains("on") && el.getClientRects().length > 0; }
   el._arm = function () {
     if (!vis() || cur !== FI) { try { v.pause(); } catch (e) {} return; }
-    if (document.readyState !== "complete") { if (!el._wl) { el._wl = 1; addEventListener("load", function () { setTimeout(el._arm, 300); }); } return; }   /* pehle app khule, phir video */
+    if (document.readyState !== "complete" && !el._go) { if (!el._wl) { el._wl = 1; var gofn = function () { if (el._go) return; el._go = 1; el._arm(); }; addEventListener("load", function () { setTimeout(gofn, 300); }); setTimeout(gofn, 2500); } return; }   /* pehle app khule (max 2.5s), phir video */
     if (!v.getAttribute("src") && v.getAttribute("data-src")) { v.preload = "auto"; v.src = v.getAttribute("data-src"); }
-    var p = v.play(); if (p && p.catch) p.catch(function () {});
+    tryPlay();
   };
+  function resume() { if (!document.hidden) { if (el._arm) el._arm(); } else try { v.pause(); } catch (x) {} }
+  document.addEventListener("visibilitychange", resume);
+  addEventListener("pageshow", function () { setTimeout(resume, 200); });
+  addEventListener("focus", function () { setTimeout(resume, 200); });
   if (window.IntersectionObserver) new IntersectionObserver(function (es) {
     es.forEach(function (e) { if (e.isIntersecting) el._arm(); else try { v.pause(); } catch (x) {} });
   }).observe(el);
