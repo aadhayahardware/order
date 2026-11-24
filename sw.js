@@ -4,7 +4,7 @@
 // ?v= wali files (js/css/photo/video): phone me ek baar aayi to dobara download nahi — naya version = naya ?v=.
 // Bina ?v= wali js/css: phone ki copy turant, peeche se update.
 // Supabase (stock/rate) ko yeh CHHOOTA NAHI — woh hamesha live aata hai.
-const VER = 'aad-v3';
+const VER = 'aad-v4';
 const IMG_CACHE = VER + '-img';
 const CORE_CACHE = VER + '-core';
 const ASSET_CACHE = VER + '-asset';

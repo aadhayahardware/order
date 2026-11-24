@@ -7,7 +7,7 @@
    Add a card later: add an entry to CARDS below. */
 
 var LAUNCH_CAT = "SS Mortise Handles";      // category opened by the launch card (exact chip name)
-var V = "3";                                 // bump when a launch video/image is replaced
+var V = "4";                                 // bump when a launch video/image is replaced
 var BASE = "https://rtgfbovemrxfsiflwmvp.supabase.co/rest/v1/v_public_stock?select=app_code,qty&qty=gt.0&order=app_code.asc";
 var KEY = "sb_publishable_BjpMZA25KLEHoDiX1FYZmA_W_7XBwjN";
 var EVERY = 60000, STOCK_DWELL = 4500, LOOP_DWELL = 7700, POSTER = "live-stock-poster.jpg?v=1";
@@ -157,7 +157,7 @@ function make(where) {
     im.className = "ofs-img"; im.alt = "Mortise Handle"; im.decoding = "async";
     im.src = "launch-loop.webp?v=" + V;
     cards[FI].appendChild(im);
-    if (why !== "mem") try { localStorage.setItem(IMGK, "1"); } catch (e) {}
+    if (why !== "mem" && why !== "ios") try { localStorage.setItem(IMGK, "1"); } catch (e) {}
     dbg("IMG fallback: " + why);
     plan();
   }
@@ -177,7 +177,10 @@ function make(where) {
     dbox.textContent += new Date().toLocaleTimeString() + " " + m + "\n";
   }
   if (DBG) { dbg(navigator.userAgent); ["play","playing","pause","waiting","stalled","error","loadeddata","canplay"].forEach(function (n) { v.addEventListener(n, function () { dbg(n + " t=" + v.currentTime.toFixed(1) + " rs=" + v.readyState + (v.error ? " err=" + v.error.code : "")); }); }); }
-  try { if (localStorage.getItem(IMGK) === "1" && !/[?&]vdebug=1/.test(location.search)) setTimeout(function () { useImg("mem"); }, 0); } catch (e) {}
+  /* iPhone/iPad (24 Nov 2026): Safari video ko card me theek se nahi chalata — seedha chalti WebP photo. */
+  var IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (IOS && !DBG) setTimeout(function () { useImg("ios"); }, 0);
+  else try { if (localStorage.getItem(IMGK) === "1" && !DBG) setTimeout(function () { useImg("mem"); }, 0); } catch (e) {}
 
   function mark(n) { for (var k = 0; k < dots.length; k++) dots[k].className = k === n ? "on" : ""; }
   function go(n) { cur = (n + cards.length) % cards.length; tr.scrollTo({ left: cards[cur].offsetLeft - 16, behavior: "smooth" }); mark(cur); plan(); }
