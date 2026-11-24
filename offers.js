@@ -7,7 +7,7 @@
    Add a card later: add an entry to CARDS below. */
 
 var LAUNCH_CAT = "SS Mortise Handles";      // category opened by the launch card (exact chip name)
-var V = "2";                                 // bump when a launch video/image is replaced
+var V = "3";                                 // bump when a launch video/image is replaced
 var BASE = "https://rtgfbovemrxfsiflwmvp.supabase.co/rest/v1/v_public_stock?select=app_code,qty&qty=gt.0&order=app_code.asc";
 var KEY = "sb_publishable_BjpMZA25KLEHoDiX1FYZmA_W_7XBwjN";
 var EVERY = 60000, STOCK_DWELL = 4500, LOOP_DWELL = 7700, POSTER = "live-stock-poster.jpg?v=1";
@@ -37,6 +37,7 @@ function css() {
     ".ofs-pl{display:none;position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(10,10,10,.55);border:1.5px solid #E9CF7A;pointer-events:none;z-index:2}" +
     ".ofs-pl:before{content:'';position:absolute;left:19px;top:14px;border-style:solid;border-width:10px 0 10px 15px;border-color:transparent transparent transparent #E9CF7A}" +
     ".ofs.ofs-tap .ofs-pl{display:block}" +
+    ".ofc .ofs-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#0A0A0A}" +
     ".ofs-dots{display:flex;gap:6px;justify-content:center;padding:9px 0 4px}" +
     ".ofs-dots i{width:6px;height:6px;border-radius:3px;background:#d9d5cc;transition:width .3s,background .3s}" +
     ".ofs-dots i.on{width:18px;background:#C8A84A}" +
@@ -128,10 +129,13 @@ function make(where) {
   var waitTap = false;
   function onTap() { waitTap = false; document.removeEventListener("touchstart", onTap, true); document.removeEventListener("click", onTap, true); if (vis() && cur === FI) tryPlay(); }
   function tryPlay() {
+    if (fell) return;
+    watch();
     try {
       v.muted = true;
       var p = v.play();
-      if (p && p.catch) p.catch(function () {
+      if (p && p.catch) p.catch(function (er) {
+        dbg("play() blocked: " + (er && er.name));
         if (!vis() || cur !== FI) return;
         el.classList.add("ofs-tap");
         if (!waitTap) { waitTap = true; document.addEventListener("touchstart", onTap, true); document.addEventListener("click", onTap, true); }
@@ -141,6 +145,40 @@ function make(where) {
   v.addEventListener("playing", function () { el.classList.remove("ofs-tap"); });
   v.addEventListener("loadeddata", function () { if (v.paused && vis() && cur === FI) tryPlay(); });
 
+  /* PAKKA BACKUP (24 Nov 2026): kuch phone (battery/data saver, Samsung/MIUI browser) video bilkul nahi chalate.
+     Card dikhne ke 3 sec baad bhi video aage na badhe -> usi jagah chalti-phirti WebP photo (hamesha chalti hai).
+     Phone yaad rakhta hai, agli baar seedha photo. Debug: link ke end me ?vdebug=1 */
+  var IMGK = "aad_vid_img", fell = false, wd = 0, lastT = -1;
+  function useImg(why) {
+    if (fell) return; fell = true; first = true;
+    try { v.pause(); v.removeAttribute("src"); v.load(); } catch (e) {}
+    v.style.display = "none"; el.classList.remove("ofs-tap");
+    var im = document.createElement("img");
+    im.className = "ofs-img"; im.alt = "Mortise Handle"; im.decoding = "async";
+    im.src = "launch-loop.webp?v=" + V;
+    cards[FI].appendChild(im);
+    if (why !== "mem") try { localStorage.setItem(IMGK, "1"); } catch (e) {}
+    dbg("IMG fallback: " + why);
+    plan();
+  }
+  function watch() {
+    clearTimeout(wd);
+    if (fell || !vis() || cur !== FI || document.hidden) return;
+    lastT = v.currentTime;
+    wd = setTimeout(function () {
+      if (fell || !vis() || cur !== FI || document.hidden) return;
+      if (v.paused || v.currentTime === lastT) useImg("stuck rs=" + v.readyState + " err=" + (v.error ? v.error.code : 0));
+    }, 3200);
+  }
+  var DBG = /[?&]vdebug=1/.test(location.search), dbox = null;
+  function dbg(m) {
+    if (!DBG) return;
+    if (!dbox) { dbox = document.createElement("div"); dbox.style.cssText = "position:fixed;left:6px;right:6px;bottom:70px;z-index:9999;background:#000c;color:#0f0;font:11px monospace;padding:6px;border-radius:6px;max-height:40vh;overflow:auto;white-space:pre-wrap"; document.body.appendChild(dbox); }
+    dbox.textContent += new Date().toLocaleTimeString() + " " + m + "\n";
+  }
+  if (DBG) { dbg(navigator.userAgent); ["play","playing","pause","waiting","stalled","error","loadeddata","canplay"].forEach(function (n) { v.addEventListener(n, function () { dbg(n + " t=" + v.currentTime.toFixed(1) + " rs=" + v.readyState + (v.error ? " err=" + v.error.code : "")); }); }); }
+  try { if (localStorage.getItem(IMGK) === "1" && !/[?&]vdebug=1/.test(location.search)) setTimeout(function () { useImg("mem"); }, 0); } catch (e) {}
+
   function mark(n) { for (var k = 0; k < dots.length; k++) dots[k].className = k === n ? "on" : ""; }
   function go(n) { cur = (n + cards.length) % cards.length; tr.scrollTo({ left: cards[cur].offsetLeft - 16, behavior: "smooth" }); mark(cur); plan(); }
   function plan() {
@@ -149,12 +187,12 @@ function make(where) {
     if (cur < FI) { t = setTimeout(function () { go(cur + 1); }, FEST_DWELL); return; }   // Diwali card
     if (cur === FI) {
       if (!first) { el._arm(); waitSlow(); return; }   // first run: wait for the full video to end
-      try { if (vis() && v.getAttribute("src")) { v.currentTime = 0; tryPlay(); } } catch (e) {}
+      try { if (!fell && vis() && v.getAttribute("src")) { v.currentTime = 0; tryPlay(); } } catch (e) {}
       t = setTimeout(function () { go(FI + 1); }, LOOP_DWELL);
     } else t = setTimeout(function () { go(cur + 1); }, cur >= FI + 2 ? LS_DWELL : STOCK_DWELL);   // wraps to 0 after the last card
   }
   function toLoop() {
-    if (first) return; first = true;
+    if (first || fell) return; first = true;
     v.loop = true;
     if (!vis()) { v.removeAttribute("src"); v.setAttribute("data-src", "launch-loop.mp4?v=" + V); return; }
     v.src = "launch-loop.mp4?v=" + V;
@@ -172,13 +210,14 @@ function make(where) {
   }, { passive: true });
   tr.addEventListener("touchstart", function () { clearTimeout(t); }, { passive: true });
   tr.addEventListener("touchend", function () { setTimeout(plan, 600); });
-  cards[FI].addEventListener("click", function () { if (el.classList.contains("ofs-tap") || (v.paused && v.readyState < 3 && v.getAttribute("src"))) { tryPlay(); return; } openCat(LAUNCH_CAT); });
+  cards[FI].addEventListener("click", function () { if (!fell && (el.classList.contains("ofs-tap") || (v.paused && v.readyState < 3 && v.getAttribute("src")))) { tryPlay(); return; } openCat(LAUNCH_CAT); });
   cards[FI + 1].addEventListener("click", function () { box().classList.add("on"); });
   if (FEST) cards[0].addEventListener("click", function () { go(1); });
   el._plan = plan;
   /* SPEED: video sirf tab load/play ho jab slider screen par dikhe; screen se bahar = pause (Android battery + smooth scroll) */
   function vis() { return el.classList.contains("on") && el.getClientRects().length > 0; }
   el._arm = function () {
+    if (fell) return;
     if (!vis() || cur !== FI) { try { v.pause(); } catch (e) {} return; }
     if (document.readyState !== "complete" && !el._go) { if (!el._wl) { el._wl = 1; var gofn = function () { if (el._go) return; el._go = 1; el._arm(); }; addEventListener("load", function () { setTimeout(gofn, 300); }); setTimeout(gofn, 2500); } return; }   /* pehle app khule (max 2.5s), phir video */
     if (!v.getAttribute("src") && v.getAttribute("data-src")) { v.preload = "auto"; v.src = v.getAttribute("data-src"); }
